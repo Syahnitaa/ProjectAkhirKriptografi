@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block kelas %}lebar{% endblock %}
+{% block isi %}
+<h2>Chat</h2>
+{% if daftar %}
+  <div class="inbox">
+    {% for d in daftar %}
+    <a class="inbox-item" href="/chat/{{ d.artwork_id }}/{{ d.peer_id }}">
+      <img src="/static/{{ d.preview_path }}" alt="">
+      <div>
+        <b>{{ d.peer_name }}</b> <span class="kecil">· {{ d.title }}</span>
+        <p class="kecil">{{ d.cuplikan }}</p>
+      </div>
+      <span class="kecil">{{ d.waktu }}</span>
+    </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>Belum ada percakapan.
+  {% if session['role'] == 'collector' %}Buka <a href="/">Galeri</a> lalu klik <b>Chat / Nego</b> pada karya yang kamu minati.
+  {% else %}Pesan dari kolektor akan muncul di sini.{% endif %}</p>
+{% endif %}
+{% endblock %}

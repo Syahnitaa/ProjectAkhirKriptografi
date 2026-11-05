@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block isi %}
+<h2>Upload Karya</h2>
+<form method="POST" enctype="multipart/form-data">
+  <label>Judul karya</label>
+  <input type="text" name="title" required>
+
+  <label>Deskripsi (opsional)</label>
+  <input type="text" name="description">
+
+  <label>Harga (Rupiah, angka saja)</label>
+  <input type="number" name="price" min="1" required>
+
+  <label>Gambar (PNG / JPG, maks 15 MB)</label>
+  <input type="file" name="image" accept="image/png,image/jpeg" required>
+
+  <button type="submit">Upload</button>
+</form>
+<p class="kecil">Saat diupload, sistem otomatis mengenkripsi teks watermark (AES) lalu menyembunyikannya di piksel gambar,
+mengenkripsi file asli (ChaCha20), mencatat hash di blockchain, dan membuat pratinjau untuk galeri.</p>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block kelas %}lebar{% endblock %}
+{% block isi %}
+<h2>Blockchain ArtVault</h2>
+<p>Setiap upload dan pembelian karya dicatat sebagai block. Tiap block menyimpan hash block sebelumnya,
+jadi data yang diubah akan ketahuan.</p>
+
+<form method="POST">
+  <button type="submit">🔍 Verifikasi Integritas</button>
+</form>
+
+{% if hasil %}
+  {% if hasil.semua_ok %}
+    <p class="hasil ok">✅ <b>Semua valid.</b> {{ hasil.blok|length }} block saling terhubung dan
+    {{ hasil.karya|length }} karya cocok dengan blockchain (pemilik &amp; isi file utuh).</p>
+  {% else %}
+    <p class="hasil gagal">❌ <b>Integritas terganggu!</b> Ada data yang tidak cocok, lihat rincian di bawah.</p>
+  {% endif %}
+
+  {% for kr in hasil.karya if not kr.ok %}
+    <p class="hasil gagal"><b>Karya #{{ kr.id }} “{{ kr.title }}”</b>
+      <ul>{% for m in kr.masalah %}<li>{{ m }}</li>{% endfor %}</ul></p>
+  {% endfor %}
+{% endif %}
+
+<div class="gulir">
+<table class="tabel">
+  <tr><th>#</th><th>Jenis</th><th>Karya</th><th>Dari → Ke</th><th>Waktu</th>
+      <th>Hash</th><th>Prev hash</th><th>Nonce</th>{% if hasil %}<th>Status</th>{% endif %}</tr>
+  {% for b in blok %}
+  <tr class="{% if hasil %}{{ 'baris-ok' if b.ok else 'baris-gagal' }}{% endif %}">
+    <td>{{ b.block_index }}</td>
+    <td><span class="badge {{ b.block_type|lower }}">{{ b.block_type }}</span></td>
+    <td>{{ b.isi.get('artwork', '—') }}</td>
+    <td>{% if b.block_type == 'GENESIS' %}—{% else %}{{ b.isi.get('from', '-') }} → {{ b.isi.get('to', '-') }}{% endif %}</td>
+    <td>{{ b.isi.get('waktu', '') }}</td>
+    <td><code title="{{ b.hash }}">{{ b.hash[:14] }}…</code></td>
+    <td><code title="{{ b.prev_hash }}">{{ b.prev_hash[:14] }}…</code></td>
+    <td>{{ b.nonce }}</td>
+    {% if hasil %}
+    <td>{% if b.ok %}✅{% else %}❌<ul class="masalah">{% for m in b.masalah %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}</td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

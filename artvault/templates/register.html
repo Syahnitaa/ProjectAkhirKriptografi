@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block isi %}
+<h2>Daftar Akun</h2>
+<form id="form">
+  <label>Username</label>
+  <input type="text" name="username" required>
+
+  <label>Email</label>
+  <input type="email" name="email" required>
+
+  <label>Password</label>
+  <input type="password" name="password" required>
+
+  <label>Daftar sebagai</label>
+  <select name="role">
+    <option value="creator">Kreator (menjual karya)</option>
+    <option value="collector">Kolektor (membeli karya)</option>
+  </select>
+
+  {% if butuh_wajah %}
+  <label>Wajah (wajib, hanya bisa didaftarkan di sini)</label>
+  <video id="video" autoplay muted playsinline></video>
+  <button type="button" id="tombolRekam" disabled>Rekam Wajah</button>
+  {% endif %}
+  <p id="status" class="status">{% if butuh_wajah %}Memuat model...{% endif %}</p>
+
+  <button type="submit" id="tombolDaftar" {% if butuh_wajah %}disabled{% endif %}>Daftar</button>
+</form>
+<p>Sudah punya akun? <a href="/login">Login</a></p>
+
+{% if butuh_wajah %}<script src="/static/face-api.js"></script>{% endif %}
+<script src="/static/face.js"></script>
+<script>
+  const BUTUH_WAJAH = {{ 'true' if butuh_wajah else 'false' }};
+  const form = document.getElementById("form");
+  const status = document.getElementById("status");
+  const tombolDaftar = document.getElementById("tombolDaftar");
+  let hasilWajah = null;   // berisi 5 rekaman wajah setelah tombol Rekam ditekan
+
+  if (BUTUH_WAJAH) {
+    const video = document.getElementById("video");
+    const tombolRekam = document.getElementById("tombolRekam");
+
+    (async () => {
+      try {
+        await muatModel();
+        await nyalakanKamera(video);
+        status.textContent = "Siap. Klik 'Rekam Wajah' dan tetap hadap kamera.";
+        tombolRekam.disabled = false;
+      } catch (e) {
+        status.textContent = "Gagal: " + e.message + " (izinkan akses kamera)";
+      }
+    })();
+
+    tombolRekam.onclick = async () => {
+      tombolRekam.disabled = true;
+      tombolDaftar.disabled = true;
+      hasilWajah = await rekamWajah(video, 5, (i, n) => {
+        status.textContent = "Merekam " + i + " dari " + n + "... tetap hadap kamera";
+      });
+      if (hasilWajah) {
+        status.textContent = "Wajah terekam. Silakan klik Daftar.";
+        tombolDaftar.disabled = false;
+      } else {
+        status.textContent = "Wajah tidak terdeteksi. Perbaiki pencahayaan lalu rekam lagi.";
+      }
+      tombolRekam.disabled = false;
+    };
+  }
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    tombolDaftar.disabled = true;
+    status.textContent = "Mendaftarkan...";
+    const f = new FormData(form);
+    const jawaban = await kirimKeServer("/register", {
+      username: f.get("username"),
+      email: f.get("email"),
+      password: f.get("password"),
+      role: f.get("role"),
+      descriptors: hasilWajah,
+    });
+    status.textContent = jawaban.pesan;
+    if (jawaban.ok) {
+      window.location.href = jawaban.redirect;
+    } else {
+      tombolDaftar.disabled = BUTUH_WAJAH && !hasilWajah;
+    }
+  };
+</script>
+{% endblock %}
