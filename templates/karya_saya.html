@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block kelas %}lebar{% endblock %}
+{% block isi %}
+<h2>{{ judul or 'Karya Saya' }}</h2>
+{% if karya %}
+  <div class="grid">
+    {% set aksi = true %}
+    {% for k in karya %}{% include "_kartu.html" %}{% endfor %}
+  </div>
+{% else %}
+  <p>{{ kosong or 'Belum ada karya.' }}</p>
+{% endif %}
+{% endblock %}

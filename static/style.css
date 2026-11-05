@@ -1,0 +1,103 @@
+body { font-family: Arial, sans-serif; background: #f4f4f8; margin: 0; }
+header { background: #3b2f63; color: white; padding: 12px 24px;
+         display: flex; justify-content: space-between; align-items: center; }
+header h1 { margin: 0; font-size: 22px; }
+header a { color: #ffd; }
+main { max-width: 420px; margin: 30px auto; background: white;
+       padding: 24px; border-radius: 8px; }
+label { display: block; margin-top: 12px; font-weight: bold; }
+input, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+button { margin-top: 18px; padding: 10px 18px; background: #3b2f63;
+         color: white; border: none; border-radius: 4px; cursor: pointer; }
+.pesan { background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 12px; }
+video { width: 100%; border-radius: 8px; background: #000; transform: scaleX(-1); }
+.status { font-weight: bold; color: #3b2f63; }
+button:disabled { background: #999; cursor: not-allowed; }
+
+/* ---- halaman lebar & galeri ---- */
+header nav { display: flex; gap: 14px; align-items: center; font-size: 14px; }
+header nav span { opacity: .8; }
+main.lebar { max-width: 960px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.kartu { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fff; }
+.kartu img { width: 100%; height: 160px; object-fit: cover; display: block; }
+.kartu-isi { padding: 10px; }
+.kartu-isi h3 { margin: 0 0 4px; font-size: 16px; }
+.kecil { font-size: 13px; color: #666; margin: 2px 0; }
+.harga { font-weight: bold; color: #3b2f63; margin: 6px 0; }
+.badge { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+a.tombol { display: inline-block; margin-top: 6px; padding: 6px 10px; background: #3b2f63;
+           color: white; border-radius: 4px; text-decoration: none; font-size: 13px; }
+.hasil { padding: 10px; border-radius: 6px; }
+.hasil.ok { background: #d4edda; }
+.hasil.gagal { background: #f8d7da; }
+
+/* ---- chat ---- */
+.chat-kotak { height: 380px; overflow-y: auto; background: #f4f4f8; border-radius: 8px;
+              padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.bubble { max-width: 70%; padding: 8px 12px; border-radius: 12px; font-size: 14px;
+          word-wrap: break-word; overflow-wrap: anywhere; }
+.bubble.saya { align-self: flex-end; background: #3b2f63; color: white; border-bottom-right-radius: 2px; }
+.bubble.lawan { align-self: flex-start; background: white; border: 1px solid #ddd; border-bottom-left-radius: 2px; }
+.bubble .waktu { display: block; font-size: 11px; opacity: .65; margin-top: 2px; text-align: right; }
+.bubble details { margin-top: 6px; font-size: 11px; }
+.bubble summary { cursor: pointer; opacity: .8; }
+.bubble .tahap { margin-top: 4px; font-family: monospace; word-break: break-all; opacity: .9; }
+.chat-input { display: flex; gap: 8px; margin-top: 10px; }
+.chat-input button { margin-top: 4px; }
+.inbox { display: flex; flex-direction: column; gap: 8px; }
+.inbox-item { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px solid #ddd;
+              border-radius: 8px; text-decoration: none; color: inherit; }
+.inbox-item:hover { background: #f4f4f8; }
+.inbox-item img { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; }
+.inbox-item > div { flex: 1; }
+.inbox-item p { margin: 2px 0 0; }
+
+/* ---- detail karya & blockchain ---- */
+a.polos { color: inherit; text-decoration: none; }
+.detail { display: grid; grid-template-columns: minmax(200px, 1fr) 1fr; gap: 24px; margin-bottom: 24px; }
+.detail img { width: 100%; border-radius: 8px; }
+.harga.besar { font-size: 24px; }
+code { background: #f0eef6; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+.gulir { overflow-x: auto; }
+.tabel { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+.tabel th, .tabel td { border-bottom: 1px solid #e5e5ee; padding: 6px 8px; text-align: left; vertical-align: top; }
+.tabel th { background: #f4f4f8; }
+.badge.genesis { background: #e2e3e5; }
+.badge.upload { background: #d1e7ff; }
+.badge.transfer { background: #ffe5b4; }
+.baris-ok { background: #f3fbf5; }
+.baris-gagal { background: #fdecee; }
+.masalah { margin: 4px 0 0; padding-left: 16px; color: #a00; }
+@media (max-width: 640px) { .detail { grid-template-columns: 1fr; } }
+
+/* ---- chat: file, gambar rahasia, panel ---- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.chip { background: #ece9f5; color: #3b2f63; padding: 3px 10px; border-radius: 12px; font-size: 12px; }
+.chat-input input[type="text"] { flex: 1; }
+.chat-input button.ikon { padding: 8px 12px; font-size: 16px; background: #ece9f5; color: #3b2f63; }
+.chat-input button.ikon:hover:not(:disabled) { background: #dcd7ee; }
+.galat { color: #b00020; font-weight: bold; }
+.panel { border: 1px dashed #3b2f63; background: #faf9fd; border-radius: 8px; padding: 12px; margin-top: 10px; }
+.panel p { margin: 4px 0 8px; }
+button.sekunder { background: #e5e5ee; color: #333; margin-left: 6px; }
+
+.lampiran { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.lampiran:not(.rahasia) { flex-direction: row; align-items: center; gap: 10px; }
+.lampiran-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.lampiran-info b { overflow-wrap: anywhere; }
+.bubble .kecil { color: inherit; opacity: .75; }
+.bubble.saya a.tombol-kecil, .bubble.saya button.tombol-kecil { background: #fff; color: #3b2f63; }
+a.tombol-kecil, button.tombol-kecil { display: inline-block; margin: 0; padding: 4px 8px; background: #3b2f63;
+    color: #fff; border-radius: 4px; font-size: 12px; text-decoration: none; white-space: nowrap; }
+.lampiran .aksi { display: flex; flex-wrap: wrap; gap: 6px; }
+img.penutup { max-width: 100%; max-height: 260px; border-radius: 6px; display: block; }
+.hasil-rahasia { border-top: 1px dashed currentColor; padding-top: 6px; }
+
+/* ---- cek watermark ---- */
+.tahap-wm { margin: 6px 0; padding: 8px 10px; border-radius: 6px; background: #f4f4f8; font-size: 13px; }
+.tahap-wm code { word-break: break-all; display: block; margin-top: 4px; }
+
+/* ---- Donggle ---- */
+.donggle { margin-left: 12px; padding: 2px 8px; border-radius: 10px; background: #e6f4ea; color: #1e6b34; font-size: 0.8rem; }
+.kunci-donggle { max-width: 480px; margin: 60px auto; padding: 24px; text-align: center; border: 2px dashed #b33; border-radius: 10px; }
