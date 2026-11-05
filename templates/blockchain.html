@@ -1,47 +1,180 @@
-{% extends "base.html" %}
-{% block kelas %}lebar{% endblock %}
-{% block isi %}
-<h2>Blockchain ArtVault</h2>
-<p>Setiap upload dan pembelian karya dicatat sebagai block. Tiap block menyimpan hash block sebelumnya,
-jadi data yang diubah akan ketahuan.</p>
 
-<form method="POST">
-  <button type="submit">🔍 Verifikasi Integritas</button>
-</form>
+{% extends "base.html" %}
+
+{% block title %}Blockchain Explorer | CipherArt{% endblock %}
+{% block kelas %}lebar{% endblock %}
+
+{% block isi %}
+
+<section class="page-heading">
+    <span class="eyebrow">TRANSPARENCY & SECURITY</span>
+    <h1>Blockchain Explorer</h1>
+
+    <p>
+        Explore transaction records and verify the integrity
+        of digital artwork ownership on CipherArt.
+    </p>
+</section>
+
+<div class="content-card">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;">
+
+        <div>
+            <span class="eyebrow">NETWORK STATUS</span>
+            <h3>ArtVault Blockchain</h3>
+            <p class="kecil">
+                Every upload and purchase is recorded in an immutable chain.
+            </p>
+        </div>
+
+        <form method="POST" style="width:auto;">
+            <button type="submit">
+                Verify Integrity →
+            </button>
+        </form>
+
+    </div>
+
+    <p>
+        Setiap upload dan pembelian karya dicatat sebagai block.
+        Tiap block menyimpan hash block sebelumnya, jadi data yang
+        diubah akan ketahuan.
+    </p>
+
+</div>
 
 {% if hasil %}
-  {% if hasil.semua_ok %}
-    <p class="hasil ok">✅ <b>Semua valid.</b> {{ hasil.blok|length }} block saling terhubung dan
-    {{ hasil.karya|length }} karya cocok dengan blockchain (pemilik &amp; isi file utuh).</p>
-  {% else %}
-    <p class="hasil gagal">❌ <b>Integritas terganggu!</b> Ada data yang tidak cocok, lihat rincian di bawah.</p>
-  {% endif %}
 
-  {% for kr in hasil.karya if not kr.ok %}
-    <p class="hasil gagal"><b>Karya #{{ kr.id }} “{{ kr.title }}”</b>
-      <ul>{% for m in kr.masalah %}<li>{{ m }}</li>{% endfor %}</ul></p>
-  {% endfor %}
+    {% if hasil.semua_ok %}
+
+        <div class="hasil ok" style="margin-top:25px;">
+            <strong>✓ All Integrity Checks Passed</strong>
+            <p style="color:inherit;">
+                {{ hasil.blok|length }} block saling terhubung dan
+                {{ hasil.karya|length }} karya cocok dengan blockchain
+                (pemilik & isi file utuh).
+            </p>
+        </div>
+
+    {% else %}
+
+        <div class="hasil gagal" style="margin-top:25px;">
+            <strong>Integrity Verification Failed</strong>
+            <p style="color:inherit;">
+                Ada data yang tidak cocok, lihat rincian di bawah.
+            </p>
+        </div>
+
+    {% endif %}
+
+    {% for kr in hasil.karya if not kr.ok %}
+
+    <div class="hasil gagal" style="margin-top:15px;">
+        <strong>Karya #{{ kr.id }} “{{ kr.title }}”</strong>
+
+        <ul>
+            {% for m in kr.masalah %}
+            <li>{{ m }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {% endfor %}
+
 {% endif %}
 
-<div class="gulir">
-<table class="tabel">
-  <tr><th>#</th><th>Jenis</th><th>Karya</th><th>Dari → Ke</th><th>Waktu</th>
-      <th>Hash</th><th>Prev hash</th><th>Nonce</th>{% if hasil %}<th>Status</th>{% endif %}</tr>
-  {% for b in blok %}
-  <tr class="{% if hasil %}{{ 'baris-ok' if b.ok else 'baris-gagal' }}{% endif %}">
-    <td>{{ b.block_index }}</td>
-    <td><span class="badge {{ b.block_type|lower }}">{{ b.block_type }}</span></td>
-    <td>{{ b.isi.get('artwork', '—') }}</td>
-    <td>{% if b.block_type == 'GENESIS' %}—{% else %}{{ b.isi.get('from', '-') }} → {{ b.isi.get('to', '-') }}{% endif %}</td>
-    <td>{{ b.isi.get('waktu', '') }}</td>
-    <td><code title="{{ b.hash }}">{{ b.hash[:14] }}…</code></td>
-    <td><code title="{{ b.prev_hash }}">{{ b.prev_hash[:14] }}…</code></td>
-    <td>{{ b.nonce }}</td>
-    {% if hasil %}
-    <td>{% if b.ok %}✅{% else %}❌<ul class="masalah">{% for m in b.masalah %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}</td>
-    {% endif %}
-  </tr>
-  {% endfor %}
-</table>
+<div style="margin-top:45px;">
+
+    <div class="page-heading">
+        <span class="eyebrow">TRANSACTION HISTORY</span>
+        <h2>Block Records</h2>
+        <p>Detailed transaction and cryptographic hash information.</p>
+    </div>
+
+    <div class="gulir">
+
+        <table class="tabel">
+
+            <tr>
+                <th>#</th>
+                <th>Type</th>
+                <th>Artwork</th>
+                <th>From → To</th>
+                <th>Time</th>
+                <th>Hash</th>
+                <th>Previous Hash</th>
+                <th>Nonce</th>
+
+                {% if hasil %}
+                <th>Status</th>
+                {% endif %}
+            </tr>
+
+            {% for b in blok %}
+
+            <tr class="{% if hasil %}{{ 'baris-ok' if b.ok else 'baris-gagal' }}{% endif %}">
+
+                <td>{{ b.block_index }}</td>
+
+                <td>
+                    <span class="badge {{ b.block_type|lower }}">
+                        {{ b.block_type }}
+                    </span>
+                </td>
+
+                <td>{{ b.isi.get('artwork', '—') }}</td>
+
+                <td>
+                    {% if b.block_type == 'GENESIS' %}
+                        —
+                    {% else %}
+                        {{ b.isi.get('from', '-') }} → {{ b.isi.get('to', '-') }}
+                    {% endif %}
+                </td>
+
+                <td>{{ b.isi.get('waktu', '') }}</td>
+
+                <td>
+                    <code title="{{ b.hash }}">
+                        {{ b.hash[:14] }}…
+                    </code>
+                </td>
+
+                <td>
+                    <code title="{{ b.prev_hash }}">
+                        {{ b.prev_hash[:14] }}…
+                    </code>
+                </td>
+
+                <td>{{ b.nonce }}</td>
+
+                {% if hasil %}
+
+                <td>
+                    {% if b.ok %}
+                        ✓ Valid
+                    {% else %}
+                        ✕ Invalid
+
+                        <ul class="masalah">
+                            {% for m in b.masalah %}
+                            <li>{{ m }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </td>
+
+                {% endif %}
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
 </div>
+
 {% endblock %}

@@ -1,13 +1,44 @@
+
 {% extends "base.html" %}
+
+{% block title %}My Artwork | CipherArt{% endblock %}
 {% block kelas %}lebar{% endblock %}
+
 {% block isi %}
-<h2>{{ judul or 'Karya Saya' }}</h2>
+
+<section class="gallery-hero">
+    <div>
+        <span class="eyebrow">CREATOR WORKSPACE</span>
+        <h1>{{ judul or 'My Artwork' }}</h1>
+        <p>
+            Manage your digital creations, access original files,
+            and track your artwork ownership.
+        </p>
+    </div>
+
+    <a href="/upload" class="btn btn-primary">
+        + Upload Artwork
+    </a>
+</section>
+
 {% if karya %}
-  <div class="grid">
+
+<div class="grid">
     {% set aksi = true %}
-    {% for k in karya %}{% include "_kartu.html" %}{% endfor %}
-  </div>
+    {% for k in karya %}
+        {% include "_kartu.html" %}
+    {% endfor %}
+</div>
+
 {% else %}
-  <p>{{ kosong or 'Belum ada karya.' }}</p>
+
+<div class="content-card" style="text-align:center;padding:65px 25px;">
+    <div style="font-size:48px;">◇</div>
+    <h2>Your collection is waiting</h2>
+    <p>{{ kosong or 'Belum ada karya.' }}</p>
+    <a href="/upload" class="btn btn-primary">Upload Artwork</a>
+</div>
+
 {% endif %}
+
 {% endblock %}

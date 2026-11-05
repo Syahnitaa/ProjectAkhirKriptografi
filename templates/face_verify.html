@@ -1,15 +1,54 @@
-{% extends "base.html" %}
-{% block isi %}
-<h2>Verifikasi Wajah</h2>
-<p>Password benar. Satu langkah lagi: hadap kamera untuk verifikasi wajah.</p>
 
-<video id="video" autoplay muted playsinline></video>
-<p id="status" class="status">Memuat model...</p>
-<button id="tombol" disabled>Verifikasi Wajah</button>
-<p><a href="/login">Batal</a></p>
+{% extends "base.html" %}
+
+{% block title %}Face Verification | CipherArt{% endblock %}
+
+{% block isi %}
+
+<div class="auth-layout">
+
+    <section class="auth-visual">
+        <div>
+            <span class="eyebrow" style="color:#d5e3fc;">IDENTITY PROTECTION</span>
+            <h1>One more step to secure your account.</h1>
+            <p>
+                Your identity is protected through biometric face verification.
+            </p>
+        </div>
+        <div>
+            <div class="auth-visual-mark">C.</div>
+            <p>Privacy meets security.</p>
+        </div>
+    </section>
+
+    <section class="auth-form-panel">
+
+        <span class="eyebrow">BIOMETRIC AUTHENTICATION</span>
+        <h2>Verify Your Identity</h2>
+
+        <p>
+            Password benar. Satu langkah lagi: hadap kamera untuk verifikasi wajah.
+        </p>
+
+        <video id="video" autoplay muted playsinline></video>
+
+        <p id="status" class="status">Memuat model...</p>
+
+        <button id="tombol" disabled style="width:100%;">
+            Verify Face →
+        </button>
+
+        <div class="auth-bottom">
+            <a href="/login">Cancel and return to login</a>
+        </div>
+
+    </section>
+
+</div>
 
 <script src="/static/face-api.js"></script>
 <script src="/static/face.js"></script>
+
 <script>
   const video = document.getElementById("video");
   const status = document.getElementById("status");
@@ -29,26 +68,30 @@
   tombol.onclick = async () => {
     tombol.disabled = true;
 
-    // Ambil 3 rekaman wajah berurutan. Server mewajibkan SEMUANYA cocok.
     const hasil = await rekamWajah(video, 3, (i, n) => {
       status.textContent = "Memindai wajah " + i + " dari " + n + "...";
     });
+
     if (!hasil) {
       status.textContent = "Wajah tidak terdeteksi. Coba lagi.";
       tombol.disabled = false;
       return;
     }
 
-    const jawaban = await kirimKeServer("/face/verify", { descriptors: hasil });
+    const jawaban = await kirimKeServer("/face/verify", {
+      descriptors: hasil
+    });
+
     status.textContent = jawaban.pesan;
 
     if (jawaban.ok) {
       window.location.href = jawaban.redirect;
-    } else if (jawaban.redirect) {       // terlalu banyak gagal -> kembali ke login
+    } else if (jawaban.redirect) {
       setTimeout(() => (window.location.href = jawaban.redirect), 1500);
     } else {
       tombol.disabled = false;
     }
   };
 </script>
+
 {% endblock %}

@@ -1,30 +1,163 @@
+
 {% extends "base.html" %}
+
+{% block title %}Watermark Verification | CipherArt{% endblock %}
+
 {% block isi %}
-<h2>Cek Watermark</h2>
-<p>Upload gambar (harus PNG hasil download dari ArtVault) untuk membaca watermark tersembunyinya.</p>
-<p class="kecil">Watermark disimpan di dalam piksel dalam bentuk <b>terenkripsi AES</b>. Tanpa kunci server,
-yang terbaca dari piksel hanyalah data acak.</p>
-<form method="POST" enctype="multipart/form-data">
-  <input type="file" name="image" accept="image/*" required>
-  <button type="submit">Periksa</button>
-</form>
+
+<div class="page-heading">
+    <span class="eyebrow">DIGITAL OWNERSHIP PROTECTION</span>
+    <h1>Watermark Verification</h1>
+
+    <p>
+        Verify the hidden cryptographic watermark embedded
+        inside your digital artwork.
+    </p>
+</div>
+
+<div class="content-card" style="max-width:800px;margin:auto;">
+
+    <div style="font-size:35px;margin-bottom:15px;">◈</div>
+
+    <h3>Verify Artwork Authenticity</h3>
+
+    <p>
+        Upload an image to check whether it contains an original
+        CipherArt watermark.
+    </p>
+
+    <p class="kecil">
+        Upload gambar (harus PNG hasil download dari ArtVault)
+        untuk membaca watermark tersembunyinya.
+    </p>
+
+    <p class="kecil">
+        Watermark disimpan di dalam piksel dalam bentuk
+        <b>terenkripsi AES</b>. Tanpa kunci server,
+        yang terbaca dari piksel hanyalah data acak.
+    </p>
+
+    <form method="POST" enctype="multipart/form-data">
+
+        <label for="image">Select Artwork Image</label>
+
+        <input
+            type="file"
+            name="image"
+            id="image"
+            accept="image/*"
+            required
+        >
+
+        <div id="wmPreview" style="display:none;margin-top:20px;">
+            <img id="wmImage"
+                 alt="Selected image"
+                 style="max-width:100%;max-height:300px;border-radius:15px;">
+        </div>
+
+        <button type="submit" style="width:100%;">
+            Verify Watermark →
+        </button>
+
+    </form>
+
+</div>
 
 {% if hasil %}
-  {% if hasil.status == 'ok' %}
-    <p class="hasil ok">✅ Watermark ditemukan dan berhasil didekripsi:<br><b>{{ hasil.teks }}</b></p>
-    <div class="tahap-wm"><b>1. Bit LSB yang terbaca dari piksel</b> ({{ hasil.ukuran }} byte, data acak):
-      <code>{{ hasil.mentah }}</code></div>
-    <div class="tahap-wm"><b>2. Setelah dekripsi AES-GCM:</b> <code>{{ hasil.teks }}</code></div>
-  {% elif hasil.status == 'rusak' %}
-    <p class="hasil gagal">⚠️ Ada data watermark di gambar ini, tetapi <b>tidak bisa didekripsi</b>
-    (bukan dibuat oleh sistem ini, atau gambar telah dimodifikasi).</p>
-    <div class="tahap-wm"><b>Bit LSB yang terbaca:</b> <code>{{ hasil.mentah }}</code></div>
-  {% elif hasil.status == 'lama' %}
-    <p class="hasil ok">✅ Watermark ditemukan (format lama, tanpa enkripsi):<br><b>{{ hasil.teks }}</b></p>
-    <p class="kecil">Karya ini diupload sebelum watermark dienkripsi, jadi teksnya tersimpan polos di piksel.</p>
-  {% else %}
-    <p class="hasil gagal">❌ Tidak ada watermark ArtVault di gambar ini
-    (atau gambar sudah diubah/dikompres menjadi JPG).</p>
-  {% endif %}
+
+<div class="content-card" style="max-width:800px;margin:25px auto;">
+
+    <span class="eyebrow">VERIFICATION RESULT</span>
+
+    {% if hasil.status == 'ok' %}
+
+        <div class="hasil ok">
+            <strong>✓ Watermark Successfully Verified</strong>
+
+            <p style="color:inherit;">
+                Watermark ditemukan dan berhasil didekripsi:
+                <br>
+                <b>{{ hasil.teks }}</b>
+            </p>
+        </div>
+
+        <div class="tahap-wm">
+            <b>1. Bit LSB yang terbaca dari piksel</b>
+            ({{ hasil.ukuran }} byte, data acak):
+
+            <code>{{ hasil.mentah }}</code>
+        </div>
+
+        <div class="tahap-wm">
+            <b>2. Setelah dekripsi AES-GCM:</b>
+            <code>{{ hasil.teks }}</code>
+        </div>
+
+    {% elif hasil.status == 'rusak' %}
+
+        <div class="hasil gagal">
+            <strong>⚠ Watermark Cannot Be Decrypted</strong>
+
+            <p style="color:inherit;">
+                Ada data watermark di gambar ini, tetapi
+                <b>tidak bisa didekripsi</b>
+                (bukan dibuat oleh sistem ini, atau gambar telah dimodifikasi).
+            </p>
+        </div>
+
+        <div class="tahap-wm">
+            <b>Bit LSB yang terbaca:</b>
+            <code>{{ hasil.mentah }}</code>
+        </div>
+
+    {% elif hasil.status == 'lama' %}
+
+        <div class="hasil ok">
+            <strong>✓ Legacy Watermark Found</strong>
+
+            <p style="color:inherit;">
+                Watermark ditemukan (format lama, tanpa enkripsi):
+                <br>
+                <b>{{ hasil.teks }}</b>
+            </p>
+        </div>
+
+        <p class="kecil">
+            Karya ini diupload sebelum watermark dienkripsi,
+            jadi teksnya tersimpan polos di piksel.
+        </p>
+
+    {% else %}
+
+        <div class="hasil gagal">
+            <strong>✕ No CipherArt Watermark Found</strong>
+
+            <p style="color:inherit;">
+                Tidak ada watermark ArtVault di gambar ini
+                (atau gambar sudah diubah/dikompres menjadi JPG).
+            </p>
+        </div>
+
+    {% endif %}
+
+</div>
+
 {% endif %}
+
+<script>
+document.getElementById("image").addEventListener("change", function () {
+    const file = this.files[0];
+    const area = document.getElementById("wmPreview");
+    const preview = document.getElementById("wmImage");
+
+    if (!file) {
+        area.style.display = "none";
+        return;
+    }
+
+    preview.src = URL.createObjectURL(file);
+    area.style.display = "block";
+});
+</script>
+
 {% endblock %}

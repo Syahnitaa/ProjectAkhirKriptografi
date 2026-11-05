@@ -1,13 +1,51 @@
+
 {% extends "base.html" %}
+
+{% block title %}Discover Art | CipherArt{% endblock %}
 {% block kelas %}lebar{% endblock %}
+
 {% block isi %}
-<h2>Galeri Karya</h2>
+
+<section class="gallery-hero">
+    <div>
+        <span class="eyebrow">THE DIGITAL ART COLLECTION</span>
+        <h1>Discover Digital Art.</h1>
+        <p>
+            Explore unique digital creations from talented artists.
+            Every artwork is protected with advanced cryptographic technology.
+        </p>
+    </div>
+
+    {% if session.get('role') == 'creator' %}
+    <a href="/upload" class="btn btn-primary">
+        + Create Artwork
+    </a>
+    {% endif %}
+</section>
+
+<div class="gallery-toolbar">
+    <div>
+        <h3>Explore Collection</h3>
+        <span class="kecil">Discover artworks from our community</span>
+    </div>
+</div>
+
 {% if karya %}
-  <div class="grid">
-    {% for k in karya %}{% include "_kartu.html" %}{% endfor %}
-  </div>
+<div class="grid" id="artworkGrid">
+    {% for k in karya %}
+        {% include "_kartu.html" %}
+    {% endfor %}
+</div>
 {% else %}
-  <p>Belum ada karya di galeri.
-  {% if session['role'] == 'creator' %}<a href="/upload">Upload karya pertamamu!</a>{% endif %}</p>
+<div class="content-card" style="text-align:center;padding:65px 25px;">
+    <div style="font-size:48px;">◇</div>
+    <h2>No artworks yet</h2>
+    <p>There are currently no artworks available in the gallery.</p>
+
+    {% if session.get('role') == 'creator' %}
+    <a href="/upload" class="btn btn-primary">Upload your first artwork</a>
+    {% endif %}
+</div>
 {% endif %}
+
 {% endblock %}

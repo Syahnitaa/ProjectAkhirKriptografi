@@ -1,10 +1,60 @@
+
 {% extends "base.html" %}
+
+{% block title %}Security Locked | CipherArt{% endblock %}
+
 {% block isi %}
+
 <meta http-equiv="refresh" content="3">
-<div class="kunci-donggle">
-  <h2>🔒 ArtVault Terkunci</h2>
-  <p>{{ pesan }}</p>
-  <p>Colokkan flashdisk donggle. Halaman ini otomatis memeriksa ulang setiap 3 detik.</p>
-  <p><a href="">Periksa sekarang</a></p>
+
+<div class="auth-layout">
+
+    <section class="auth-visual">
+        <div>
+            <span class="eyebrow" style="color:#d5e3fc;">
+                HARDWARE SECURITY
+            </span>
+
+            <h1>Your security comes first.</h1>
+
+            <p>
+                CipherArt requires your registered USB security dongle
+                to access protected features.
+            </p>
+        </div>
+
+        <div class="auth-visual-mark">C.</div>
+    </section>
+
+    <section class="auth-form-panel" style="display:flex;flex-direction:column;justify-content:center;">
+
+        <div style="font-size:55px;text-align:center;">🔒</div>
+
+        <span class="eyebrow" style="text-align:center;">
+            ACCESS RESTRICTED
+        </span>
+
+        <h2 style="text-align:center;">ArtVault Locked</h2>
+
+        <p style="text-align:center;">
+            {{ pesan }}
+        </p>
+
+        <div class="hasil gagal">
+            <strong>USB Dongle Required</strong>
+
+            <p style="color:inherit;">
+                Colokkan flashdisk donggle.
+                Halaman ini otomatis memeriksa ulang setiap 3 detik.
+            </p>
+        </div>
+
+        <a href="" class="btn btn-primary" style="margin-top:20px;">
+            Check Again
+        </a>
+
+    </section>
+
 </div>
+
 {% endblock %}

@@ -1,17 +1,70 @@
-<div class="kartu">
-  <a href="/karya/{{ k.id }}"><img src="/static/{{ k.preview_path }}" alt="{{ k.title }}"></a>
-  <div class="kartu-isi">
-    <h3><a class="polos" href="/karya/{{ k.id }}">{{ k.title }}</a></h3>
-    <p class="kecil">oleh {{ k.creator_name }}</p>
-    {% if k.description %}<p class="kecil">{{ k.description }}</p>{% endif %}
-    <p class="harga">{{ k.harga | rupiah }}</p>
-    {% if k.status == 'sold' %}<span class="badge">Terjual ke {{ k.owner_name }}</span>{% endif %}
-    <a class="tombol" href="/karya/{{ k.id }}">Detail</a>
-    {% if k.owner_id != session['user_id'] %}
-      <a class="tombol" href="/chat/{{ k.id }}/{{ k.owner_id }}">💬 Chat / Nego</a>
-    {% endif %}
-    {% if aksi and k.owner_id == session['user_id'] %}
-      <a class="tombol" href="/karya/{{ k.id }}/download">Download file asli</a>
-    {% endif %}
-  </div>
-</div>
+
+<article class="kartu">
+
+    <a href="/karya/{{ k.id }}" class="artwork-image">
+        <img
+            src="/static/{{ k.preview_path }}"
+            alt="{{ k.title }}"
+            loading="lazy"
+        >
+    </a>
+
+    <div class="kartu-isi">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <span class="eyebrow">DIGITAL ART</span>
+
+            {% if k.status == 'sold' %}
+            <span class="badge sold">SOLD</span>
+            {% endif %}
+        </div>
+
+        <h3>
+            <a class="polos" href="/karya/{{ k.id }}">
+                {{ k.title }}
+            </a>
+        </h3>
+
+        <p class="kecil">Created by {{ k.creator_name }}</p>
+
+        {% if k.description %}
+        <p class="kecil">{{ k.description }}</p>
+        {% endif %}
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:17px;">
+            <div>
+                <span class="kecil">Price</span>
+                <div class="harga">{{ k.harga | rupiah }}</div>
+            </div>
+
+            <a href="/karya/{{ k.id }}" class="btn btn-secondary btn-small">
+                View Details
+            </a>
+        </div>
+
+        {% if k.status == 'sold' %}
+        <p class="kecil">
+            Current owner: {{ k.owner_name }}
+        </p>
+        {% endif %}
+
+        <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:15px;">
+
+            {% if k.owner_id != session['user_id'] %}
+            <a class="btn btn-primary btn-small"
+               href="/chat/{{ k.id }}/{{ k.owner_id }}">
+                Chat / Negotiate
+            </a>
+            {% endif %}
+
+            {% if aksi and k.owner_id == session['user_id'] %}
+            <a class="btn btn-secondary btn-small"
+               href="/karya/{{ k.id }}/download">
+                Download Original
+            </a>
+            {% endif %}
+
+        </div>
+    </div>
+
+</article>

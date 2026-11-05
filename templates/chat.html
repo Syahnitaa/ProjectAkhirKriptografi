@@ -1,44 +1,135 @@
+
 {% extends "base.html" %}
+
+{% block title %}Conversation | CipherArt{% endblock %}
 {% block kelas %}lebar{% endblock %}
+
 {% block isi %}
-<p class="kecil"><a href="/chat">&larr; Semua percakapan</a></p>
-<h2>{{ lawan.username }} <span class="kecil">({{ lawan.role }})</span></h2>
-<p class="kecil">Tentang karya: <b>{{ karya.title }}</b></p>
+
+<p class="kecil">
+    <a href="/chat">← All Conversations</a>
+</p>
+
+<div class="content-card" style="padding:22px 25px;margin-bottom:20px;">
+
+    <div style="display:flex;align-items:center;gap:14px;">
+
+        <div class="account-avatar">
+            {{ lawan.username[0]|upper }}
+        </div>
+
+        <div>
+            <h3 style="margin:0;">{{ lawan.username }}</h3>
+
+            <span class="kecil">
+                {{ lawan.role|capitalize }}
+            </span>
+        </div>
+
+    </div>
+
+    <p class="kecil" style="margin-bottom:0;">
+        About artwork:
+        <strong>{{ karya.title }}</strong>
+    </p>
+
+</div>
 
 <div class="chips">
-  <span class="chip">💬 Teks: Vigenère → AES-GCM</span>
-  <span class="chip">📎 File: ChaCha20</span>
-  <span class="chip">🖼️ Gambar rahasia: AES-GCM + steganografi LSB</span>
+    <span class="chip">🔒 Vigenère → AES-GCM</span>
+    <span class="chip">📎 ChaCha20</span>
+    <span class="chip">🖼️ AES-GCM + LSB</span>
 </div>
 
-<div id="kotak" class="chat-kotak"></div>
+<div class="content-card" style="padding:12px;">
 
-<div id="panelRahasia" class="panel" hidden>
-  <b>Kirim gambar rahasia</b>
-  <p class="kecil">Gambar rahasia dienkripsi AES, lalu disembunyikan di dalam gambar penutup.
-  Siapa pun yang melihatnya hanya melihat gambar penutup biasa. Penutup harus cukup besar
-  (makin besar rahasianya, makin besar penutup yang dibutuhkan).</p>
-  <label>Gambar penutup (yang terlihat)</label>
-  <input type="file" id="fPenutup" accept="image/png,image/jpeg">
-  <label>Gambar rahasia (yang disembunyikan)</label>
-  <input type="file" id="fRahasia" accept="image/png,image/jpeg">
-  <button type="button" id="kirimRahasia">🔒 Sembunyikan &amp; kirim</button>
-  <button type="button" id="batalRahasia" class="sekunder">Batal</button>
+    <div id="kotak" class="chat-kotak"></div>
+
+    <div id="panelRahasia" class="panel" hidden>
+
+        <span class="eyebrow">SECURE IMAGE TRANSFER</span>
+
+        <h3>Send Secret Image</h3>
+
+        <p class="kecil">
+            Gambar rahasia dienkripsi AES, lalu disembunyikan
+            di dalam gambar penutup. Siapa pun yang melihatnya
+            hanya melihat gambar penutup biasa. Penutup harus cukup besar
+            (makin besar rahasianya, makin besar penutup yang dibutuhkan).
+        </p>
+
+        <label>Cover Image (Visible Image)</label>
+        <input type="file" id="fPenutup" accept="image/png,image/jpeg">
+
+        <label>Secret Image (Hidden Image)</label>
+        <input type="file" id="fRahasia" accept="image/png,image/jpeg">
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px;">
+
+            <button type="button" id="kirimRahasia">
+                🔒 Hide & Send
+            </button>
+
+            <button type="button" id="batalRahasia" class="sekunder">
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="chat-input">
+
+        <button
+            type="button"
+            id="tombolFile"
+            class="ikon"
+            title="Kirim file (ChaCha20)"
+        >
+            📎
+        </button>
+
+        <button
+            type="button"
+            id="tombolRahasia"
+            class="ikon"
+            title="Kirim gambar rahasia (AES + steganografi)"
+        >
+            🖼️
+        </button>
+
+        <input
+            type="text"
+            id="teks"
+            maxlength="1000"
+            placeholder="Write a message..."
+            autocomplete="off"
+        >
+
+        <button type="button" id="kirim">
+            Send
+        </button>
+
+    </div>
+
+    <input type="file" id="pilihFile" hidden>
+
+    <p id="status" class="kecil" style="padding:0 12px;"></p>
+
+    <p class="kecil" style="padding:0 12px;">
+        Teks yang diisi di kotak pesan ikut terkirim sebagai
+        keterangan saat mengirim file / gambar.
+        Maksimal file {{ maks_file_mb }} MB.
+    </p>
+
 </div>
 
-<div class="chat-input">
-  <button type="button" id="tombolFile" class="ikon" title="Kirim file (ChaCha20)">📎</button>
-  <button type="button" id="tombolRahasia" class="ikon" title="Kirim gambar rahasia (AES + steganografi)">🖼️</button>
-  <input type="text" id="teks" maxlength="1000" placeholder="Tulis pesan..." autocomplete="off">
-  <button type="button" id="kirim">Kirim</button>
-</div>
-<input type="file" id="pilihFile" hidden>
-<p id="status" class="kecil"></p>
-<p class="kecil">Teks yang diisi di kotak pesan ikut terkirim sebagai keterangan saat mengirim file / gambar.
-Maksimal file {{ maks_file_mb }} MB.</p>
-
-<div id="data-chat" hidden
+<div id="data-chat"
+     hidden
      data-url="/chat/{{ karya.id }}/{{ lawan.id }}"
-     data-debug="{{ 'true' if debug else 'false' }}"></div>
+     data-debug="{{ 'true' if debug else 'false' }}">
+</div>
+
 <script src="/static/chat.js"></script>
+
 {% endblock %}

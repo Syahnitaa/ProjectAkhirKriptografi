@@ -1,14 +1,79 @@
+
 {% extends "base.html" %}
+
+{% block title %}Sign In | CipherArt{% endblock %}
+
 {% block isi %}
-<h2>Login</h2>
-<form method="POST">
-  <label>Username</label>
-  <input type="text" name="username" required>
 
-  <label>Password</label>
-  <input type="password" name="password" required>
+<div class="auth-layout">
 
-  <button type="submit">Login</button>
-</form>
-<p>Belum punya akun? <a href="/register">Daftar</a></p>
+    <section class="auth-visual">
+        <div>
+            <span class="eyebrow" style="color:#d5e3fc;">
+                SECURE DIGITAL MARKETPLACE
+            </span>
+
+            <h1>Art deserves to be protected.</h1>
+
+            <p>
+                A secure space for creators and collectors.
+                Your digital assets deserve more than ordinary protection.
+            </p>
+        </div>
+
+        <div>
+            <div class="auth-visual-mark">C.</div>
+            <p>Cryptography meets creativity.</p>
+        </div>
+    </section>
+
+    <section class="auth-form-panel">
+
+        <span class="eyebrow">WELCOME BACK</span>
+
+        <h2>Sign in to CipherArt</h2>
+
+        <p>Enter your account credentials to continue.</p>
+
+        <form method="POST">
+
+            <label for="username">Username</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                placeholder="Enter your username"
+                autocomplete="username"
+                required
+            >
+
+            <label for="password">Password</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+            >
+
+            <button type="submit">
+                Continue →
+            </button>
+
+        </form>
+
+        <div class="auth-bottom">
+            Don't have an account?
+            <a href="/register">Create Account</a>
+        </div>
+
+        <div style="margin-top:30px;text-align:center;">
+            <span class="chip">🔒 Secure Authentication</span>
+        </div>
+
+    </section>
+
+</div>
+
 {% endblock %}

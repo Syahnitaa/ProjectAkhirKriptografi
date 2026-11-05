@@ -1,21 +1,135 @@
+
 {% extends "base.html" %}
+
+{% block title %}Upload Artwork | CipherArt{% endblock %}
+
 {% block isi %}
-<h2>Upload Karya</h2>
-<form method="POST" enctype="multipart/form-data">
-  <label>Judul karya</label>
-  <input type="text" name="title" required>
 
-  <label>Deskripsi (opsional)</label>
-  <input type="text" name="description">
+<div class="page-heading">
+    <span class="eyebrow">CREATOR STUDIO</span>
+    <h1>Upload Your Artwork</h1>
+    <p>
+        Share your creativity with the world.
+        Your artwork will automatically be protected by CipherArt's security system.
+    </p>
+</div>
 
-  <label>Harga (Rupiah, angka saja)</label>
-  <input type="number" name="price" min="1" required>
+<div class="content-card" style="max-width:850px;margin:auto;">
 
-  <label>Gambar (PNG / JPG, maks 15 MB)</label>
-  <input type="file" name="image" accept="image/png,image/jpeg" required>
+    <form method="POST" enctype="multipart/form-data">
 
-  <button type="submit">Upload</button>
-</form>
-<p class="kecil">Saat diupload, sistem otomatis mengenkripsi teks watermark (AES) lalu menyembunyikannya di piksel gambar,
-mengenkripsi file asli (ChaCha20), mencatat hash di blockchain, dan membuat pratinjau untuk galeri.</p>
+        <label for="title">Artwork Title</label>
+        <input
+            type="text"
+            id="title"
+            name="title"
+            placeholder="Give your artwork a name"
+            required
+        >
+
+        <label for="description">Description</label>
+        <textarea
+            id="description"
+            name="description"
+            placeholder="Tell collectors about your artwork..."
+        ></textarea>
+
+        <label for="price">Price (IDR)</label>
+        <input
+            type="number"
+            id="price"
+            name="price"
+            min="1"
+            placeholder="Enter price in Rupiah"
+            required
+        >
+
+        <label for="image">Artwork Image</label>
+
+        <div class="upload-zone" id="uploadZone"
+             style="padding:35px 20px;border:2px dashed #c4c6cd;border-radius:18px;text-align:center;background:var(--surface-soft);">
+
+            <div style="font-size:38px;">↑</div>
+
+            <h3>Choose your artwork</h3>
+
+            <p class="kecil">
+                PNG or JPG · Maximum file size 15 MB
+            </p>
+
+            <input
+                type="file"
+                id="image"
+                name="image"
+                accept="image/png,image/jpeg"
+                required
+            >
+
+            <div id="previewArea" style="display:none;margin-top:20px;">
+                <img id="imagePreview"
+                     alt="Artwork preview"
+                     style="max-height:260px;border-radius:15px;object-fit:contain;">
+                <p id="fileName" class="kecil"></p>
+            </div>
+        </div>
+
+        <button type="submit" style="width:100%;">
+            Upload & Secure Artwork →
+        </button>
+
+    </form>
+
+</div>
+
+<div class="content-card" style="max-width:850px;margin:22px auto 0;">
+    <span class="eyebrow">AUTOMATED SECURITY PIPELINE</span>
+    <h3>Your artwork is protected automatically</h3>
+
+    <div class="chips">
+        <span class="chip">AES Watermark</span>
+        <span class="chip">LSB Steganography</span>
+        <span class="chip">ChaCha20 Encryption</span>
+        <span class="chip">SHA-256</span>
+        <span class="chip">Blockchain Record</span>
+    </div>
+
+    <p class="kecil">
+        Saat diupload, sistem otomatis mengenkripsi teks watermark (AES)
+        lalu menyembunyikannya di piksel gambar, mengenkripsi file asli
+        (ChaCha20), mencatat hash di blockchain, dan membuat pratinjau
+        untuk galeri.
+    </p>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("image");
+    const previewArea = document.getElementById("previewArea");
+    const preview = document.getElementById("imagePreview");
+    const fileName = document.getElementById("fileName");
+
+    if (input) {
+        input.addEventListener("change", function () {
+            const file = this.files[0];
+
+            if (!file) {
+                previewArea.style.display = "none";
+                return;
+            }
+
+            if (!["image/png", "image/jpeg"].includes(file.type)) {
+                alert("Please select a PNG or JPG image.");
+                this.value = "";
+                previewArea.style.display = "none";
+                return;
+            }
+
+            preview.src = URL.createObjectURL(file);
+            fileName.textContent = file.name;
+            previewArea.style.display = "block";
+        });
+    }
+});
+</script>
+
 {% endblock %}

@@ -1,41 +1,141 @@
+
 {% extends "base.html" %}
+
+{% block title %}Create Account | CipherArt{% endblock %}
+
 {% block isi %}
-<h2>Daftar Akun</h2>
-<form id="form">
-  <label>Username</label>
-  <input type="text" name="username" required>
 
-  <label>Email</label>
-  <input type="email" name="email" required>
+<div class="auth-layout">
 
-  <label>Password</label>
-  <input type="password" name="password" required>
+    <section class="auth-visual">
+        <div>
+            <span class="eyebrow" style="color:#d5e3fc;">
+                JOIN THE COMMUNITY
+            </span>
 
-  <label>Daftar sebagai</label>
-  <select name="role">
-    <option value="creator">Kreator (menjual karya)</option>
-    <option value="collector">Kolektor (membeli karya)</option>
-  </select>
+            <h1>Your creativity. Your ownership. Your security.</h1>
 
-  {% if butuh_wajah %}
-  <label>Wajah (wajib, hanya bisa didaftarkan di sini)</label>
-  <video id="video" autoplay muted playsinline></video>
-  <button type="button" id="tombolRekam" disabled>Rekam Wajah</button>
-  {% endif %}
-  <p id="status" class="status">{% if butuh_wajah %}Memuat model...{% endif %}</p>
+            <p>
+                Join CipherArt and experience a secure digital art marketplace
+                powered by cryptography and biometric verification.
+            </p>
+        </div>
 
-  <button type="submit" id="tombolDaftar" {% if butuh_wajah %}disabled{% endif %}>Daftar</button>
-</form>
-<p>Sudah punya akun? <a href="/login">Login</a></p>
+        <div>
+            <div class="auth-visual-mark">C.</div>
+            <p>Secure by design.</p>
+        </div>
+    </section>
 
-{% if butuh_wajah %}<script src="/static/face-api.js"></script>{% endif %}
+    <section class="auth-form-panel">
+
+        <span class="eyebrow">GET STARTED</span>
+
+        <h2>Create your account</h2>
+
+        <p>Fill in your details to become part of CipherArt.</p>
+
+        <form id="form">
+
+            <label>Username</label>
+            <input
+                type="text"
+                name="username"
+                placeholder="Choose a username"
+                autocomplete="username"
+                required
+            >
+
+            <label>Email Address</label>
+            <input
+                type="email"
+                name="email"
+                placeholder="Enter your email"
+                autocomplete="email"
+                required
+            >
+
+            <label>Password</label>
+            <input
+                type="password"
+                name="password"
+                placeholder="Create a password"
+                autocomplete="new-password"
+                required
+            >
+
+            <label>Account Type</label>
+            <select name="role">
+                <option value="creator">Creator — Sell your artwork</option>
+                <option value="collector">Collector — Discover and collect art</option>
+            </select>
+
+            {% if butuh_wajah %}
+
+            <div style="margin-top:28px;padding:20px;background:var(--surface-soft);border-radius:17px;">
+
+                <span class="eyebrow">BIOMETRIC SECURITY</span>
+
+                <h3>Face Recognition Setup</h3>
+
+                <p class="kecil">
+                    Face registration is required.
+                    Keep your face visible in the camera.
+                </p>
+
+                <video id="video" autoplay muted playsinline></video>
+
+                <button
+                    type="button"
+                    id="tombolRekam"
+                    class="btn-secondary"
+                    disabled
+                    style="width:100%;"
+                >
+                    Record Face
+                </button>
+
+            </div>
+
+            {% endif %}
+
+            <p id="status" class="status">
+                {% if butuh_wajah %}
+                    Loading recognition model...
+                {% endif %}
+            </p>
+
+            <button
+                type="submit"
+                id="tombolDaftar"
+                {% if butuh_wajah %}disabled{% endif %}
+            >
+                Create Account →
+            </button>
+
+        </form>
+
+        <div class="auth-bottom">
+            Already have an account?
+            <a href="/login">Sign In</a>
+        </div>
+
+    </section>
+
+</div>
+
+{% if butuh_wajah %}
+<script src="/static/face-api.js"></script>
+{% endif %}
+
 <script src="/static/face.js"></script>
+
 <script>
   const BUTUH_WAJAH = {{ 'true' if butuh_wajah else 'false' }};
   const form = document.getElementById("form");
   const status = document.getElementById("status");
   const tombolDaftar = document.getElementById("tombolDaftar");
-  let hasilWajah = null;   // berisi 5 rekaman wajah setelah tombol Rekam ditekan
+  let hasilWajah = null;
 
   if (BUTUH_WAJAH) {
     const video = document.getElementById("video");
@@ -55,24 +155,30 @@
     tombolRekam.onclick = async () => {
       tombolRekam.disabled = true;
       tombolDaftar.disabled = true;
+
       hasilWajah = await rekamWajah(video, 5, (i, n) => {
         status.textContent = "Merekam " + i + " dari " + n + "... tetap hadap kamera";
       });
+
       if (hasilWajah) {
         status.textContent = "Wajah terekam. Silakan klik Daftar.";
         tombolDaftar.disabled = false;
       } else {
         status.textContent = "Wajah tidak terdeteksi. Perbaiki pencahayaan lalu rekam lagi.";
       }
+
       tombolRekam.disabled = false;
     };
   }
 
   form.onsubmit = async (e) => {
     e.preventDefault();
+
     tombolDaftar.disabled = true;
     status.textContent = "Mendaftarkan...";
+
     const f = new FormData(form);
+
     const jawaban = await kirimKeServer("/register", {
       username: f.get("username"),
       email: f.get("email"),
@@ -80,7 +186,9 @@
       role: f.get("role"),
       descriptors: hasilWajah,
     });
+
     status.textContent = jawaban.pesan;
+
     if (jawaban.ok) {
       window.location.href = jawaban.redirect;
     } else {
@@ -88,4 +196,5 @@
     }
   };
 </script>
+
 {% endblock %}

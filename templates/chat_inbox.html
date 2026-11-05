@@ -1,23 +1,72 @@
+
 {% extends "base.html" %}
+
+{% block title %}Messages | CipherArt{% endblock %}
 {% block kelas %}lebar{% endblock %}
+
 {% block isi %}
-<h2>Chat</h2>
+
+<div class="page-heading">
+    <span class="eyebrow">COMMUNICATION CENTER</span>
+    <h1>Messages</h1>
+    <p>
+        Connect with creators and collectors to discuss your favorite artworks.
+    </p>
+</div>
+
 {% if daftar %}
-  <div class="inbox">
+
+<div class="inbox">
+
     {% for d in daftar %}
-    <a class="inbox-item" href="/chat/{{ d.artwork_id }}/{{ d.peer_id }}">
-      <img src="/static/{{ d.preview_path }}" alt="">
-      <div>
-        <b>{{ d.peer_name }}</b> <span class="kecil">· {{ d.title }}</span>
-        <p class="kecil">{{ d.cuplikan }}</p>
-      </div>
-      <span class="kecil">{{ d.waktu }}</span>
+
+    <a class="inbox-item"
+       href="/chat/{{ d.artwork_id }}/{{ d.peer_id }}">
+
+        <img
+            src="/static/{{ d.preview_path }}"
+            alt="{{ d.title }}"
+        >
+
+        <div>
+            <b>{{ d.peer_name }}</b>
+
+            <span class="kecil">· {{ d.title }}</span>
+
+            <p>{{ d.cuplikan }}</p>
+        </div>
+
+        <span class="kecil">{{ d.waktu }}</span>
+
     </a>
+
     {% endfor %}
-  </div>
+
+</div>
+
 {% else %}
-  <p>Belum ada percakapan.
-  {% if session['role'] == 'collector' %}Buka <a href="/">Galeri</a> lalu klik <b>Chat / Nego</b> pada karya yang kamu minati.
-  {% else %}Pesan dari kolektor akan muncul di sini.{% endif %}</p>
+
+<div class="content-card" style="text-align:center;padding:65px 25px;">
+
+    <div style="font-size:45px;">✉</div>
+
+    <h2>No conversations yet</h2>
+
+    <p>
+        {% if session['role'] == 'collector' %}
+            Buka <a href="/">Galeri</a> lalu klik
+            <b>Chat / Nego</b> pada karya yang kamu minati.
+        {% else %}
+            Pesan dari kolektor akan muncul di sini.
+        {% endif %}
+    </p>
+
+    {% if session['role'] == 'collector' %}
+    <a href="/" class="btn btn-primary">Explore Artworks</a>
+    {% endif %}
+
+</div>
+
 {% endif %}
+
 {% endblock %}

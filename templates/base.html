@@ -1,38 +1,163 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>ArtVault</title>
-  <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-  <header>
-    <h1>🎨 ArtVault</h1>
-    {% if donggle_lokasi %}<small class="donggle">🔑 Donggle aktif ({{ donggle_lokasi }})</small>{% endif %}
-    {% if session.get('username') %}
-      <nav>
-        <a href="/">Galeri</a>
-        {% if session['role'] == 'creator' %}
-          <a href="/upload">Upload Karya</a>
-          <a href="/karya-saya">Karya Saya</a>
-        {% else %}
-          <a href="/koleksi">Koleksi Saya</a>
-        {% endif %}
-        <a href="/chat">Chat</a>
-        <a href="/blockchain">Blockchain</a>
-        <a href="/watermark">Cek Watermark</a>
-        <span>{{ session['username'] }} ({{ session['role'] }})</span>
-        <a href="/logout">Logout</a>
-      </nav>
-    {% endif %}
-  </header>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f9f9f8">
 
-  <main class="{% block kelas %}{% endblock %}">
+    <title>{% block title %}CipherArt | Secure Art Marketplace{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+
+<header class="site-header">
+    <div class="header-inner">
+
+        <a href="/" class="brand">
+            <span class="brand-mark">C</span>
+            <span class="brand-name">Cipher<span>Art</span></span>
+        </a>
+
+        {% if session.get('username') %}
+
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Buka navigasi">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <nav class="main-nav" id="mainNav">
+
+            <a href="/" class="{% if request.path == '/' %}active{% endif %}">
+                Discover
+            </a>
+
+            {% if session['role'] == 'creator' %}
+                <a href="/upload" class="{% if request.path == '/upload' %}active{% endif %}">
+                    Upload
+                </a>
+
+                <a href="/karya-saya" class="{% if request.path == '/karya-saya' %}active{% endif %}">
+                    My Artwork
+                </a>
+            {% else %}
+                <a href="/koleksi" class="{% if request.path == '/koleksi' %}active{% endif %}">
+                    My Collection
+                </a>
+            {% endif %}
+
+            <a href="/chat" class="{% if '/chat' in request.path %}active{% endif %}">
+                Messages
+            </a>
+
+            <a href="/blockchain" class="{% if '/blockchain' in request.path %}active{% endif %}">
+                Blockchain
+            </a>
+
+            <a href="/watermark" class="{% if '/watermark' in request.path %}active{% endif %}">
+                Watermark
+            </a>
+
+            <div class="nav-mobile-account">
+                <span>{{ session['username'] }}</span>
+                <small>{{ session['role'] }}</small>
+                <a href="/logout" class="logout-link">Sign Out</a>
+            </div>
+        </nav>
+
+        <div class="header-account">
+            <div class="account-avatar">
+                {{ session['username'][0]|upper }}
+            </div>
+
+            <div class="account-info">
+                <strong>{{ session['username'] }}</strong>
+                <small>{{ session['role']|capitalize }}</small>
+            </div>
+
+            <a href="/logout" class="logout-icon" title="Logout">
+                ↗
+            </a>
+        </div>
+
+        {% else %}
+
+        <div class="header-guest">
+            <a href="/login" class="nav-login">Sign In</a>
+            <a href="/register" class="btn btn-primary btn-small">Get Started</a>
+        </div>
+
+        {% endif %}
+    </div>
+</header>
+
+{% if donggle_lokasi %}
+<div class="security-banner">
+    <span class="security-dot"></span>
+    USB Security Dongle Active
+    <strong>{{ donggle_lokasi }}</strong>
+</div>
+{% endif %}
+
+<main class="page-content {% block kelas %}{% endblock %}">
+
     {% with pesan = get_flashed_messages() %}
-      {% for p in pesan %}<div class="pesan">{{ p }}</div>{% endfor %}
+        {% for p in pesan %}
+            <div class="flash-message">
+                <span>ⓘ</span>
+                {{ p }}
+            </div>
+        {% endfor %}
     {% endwith %}
 
     {% block isi %}{% endblock %}
-  </main>
+
+</main>
+
+<footer class="site-footer">
+    <div class="footer-inner">
+        <a href="/" class="brand footer-brand">
+            <span class="brand-mark">C</span>
+            <span class="brand-name">Cipher<span>Art</span></span>
+        </a>
+
+        <p>Protecting creativity through cryptography.</p>
+
+        <span>© 2026 CipherArt. Secure Digital Art Marketplace.</span>
+    </div>
+</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const toggle = document.getElementById("mobileMenuToggle");
+    const nav = document.getElementById("mainNav");
+
+    if (toggle && nav) {
+        toggle.addEventListener("click", function () {
+            nav.classList.toggle("nav-open");
+            toggle.classList.toggle("menu-active");
+        });
+    }
+
+    document.querySelectorAll(".flash-message").forEach(function (item) {
+        setTimeout(function () {
+            item.classList.add("flash-hide");
+        }, 5000);
+    });
+});
+</script>
+
+<script src="{{ url_for('static', filename='ui.js') }}"></script>
+{% block scripts %}{% endblock %}
+
 </body>
 </html>
