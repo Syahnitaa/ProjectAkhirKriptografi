@@ -1,6 +1,0 @@
-Flask
-PyMySQL
-bcrypt
-pycryptodome
-Pillow
-numpy
