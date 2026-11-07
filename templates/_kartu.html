@@ -16,6 +16,8 @@
 
             {% if k.status == 'sold' %}
             <span class="badge sold">SOLD</span>
+            {% elif not aksi and k.creator_id == session['user_id'] %}
+            <span class="badge">YOUR ARTWORK</span>
             {% endif %}
         </div>
 
@@ -50,7 +52,9 @@
 
         <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:15px;">
 
-            {% if k.owner_id != session['user_id'] %}
+            {% if k.owner_id != session['user_id']
+                  and ((session['role'] == 'collector' and k.status != 'sold')
+                       or (session['role'] == 'creator' and k.creator_id == session['user_id'])) %}
             <a class="btn btn-primary btn-small"
                href="/chat/{{ k.id }}/{{ k.owner_id }}">
                 Chat / Negotiate
@@ -62,6 +66,16 @@
                href="/karya/{{ k.id }}/download">
                 Download Original
             </a>
+            {% endif %}
+
+            {% if aksi and session['role'] == 'creator' and k.creator_id == session['user_id']
+                  and k.owner_id == session['user_id'] and k.status == 'available' %}
+            <a class="btn btn-secondary btn-small" href="/karya/{{ k.id }}/edit">Edit</a>
+
+            <form method="POST" action="/karya/{{ k.id }}/hapus" style="width:auto;"
+                  onsubmit="return confirm('Hapus karya ini? Gambar asli akan dihapus permanen. Catatan di blockchain tetap tersimpan.')">
+                <button type="submit" class="btn-danger btn-small">Delete</button>
+            </form>
             {% endif %}
 
         </div>

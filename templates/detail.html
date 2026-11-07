@@ -63,6 +63,8 @@
                   action="/karya/{{ k.id }}/beli"
                   onsubmit="return confirm('Beli karya ini seharga {{ k.harga | rupiah }}?')">
 
+                <input type="hidden" name="harga" value="{{ k.harga }}">
+
                 <button type="submit" style="width:100%;">
                     Purchase Artwork →
                 </button>
@@ -79,11 +81,14 @@
 
         {% if k.owner_id != session['user_id'] %}
 
+            {% if (session['role'] == 'collector' and k.status != 'sold')
+                  or (session['role'] == 'creator' and k.creator_id == session['user_id']) %}
             <a class="btn btn-secondary"
                style="width:100%;margin-top:12px;"
                href="/chat/{{ k.id }}/{{ k.owner_id }}">
                 Message / Negotiate
             </a>
+            {% endif %}
 
         {% else %}
 
@@ -92,6 +97,16 @@
                href="/karya/{{ k.id }}/download">
                 Download Original File
             </a>
+
+            {% if session['role'] == 'creator' and k.creator_id == session['user_id'] and k.status == 'available' %}
+            <div style="display:flex;gap:10px;margin-top:12px;">
+                <a class="btn btn-secondary" style="flex:1;" href="/karya/{{ k.id }}/edit">Edit Artwork</a>
+                <form method="POST" action="/karya/{{ k.id }}/hapus" style="flex:1;"
+                      onsubmit="return confirm('Hapus karya ini? Gambar asli akan dihapus permanen. Catatan di blockchain tetap tersimpan.')">
+                    <button type="submit" class="btn-danger" style="width:100%;">Delete Artwork</button>
+                </form>
+            </div>
+            {% endif %}
 
         {% endif %}
 

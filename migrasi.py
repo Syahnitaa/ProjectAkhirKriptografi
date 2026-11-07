@@ -6,7 +6,8 @@ Migrasi database ArtVault lama -> versi baru (jalankan SEKALI, aman diulang).
 Yang dilakukan:
   1. artworks.watermark_text (teks polos)  ->  artworks.watermark_enc (terenkripsi AES)
   2. messages: tambah kolom untuk file & gambar rahasia di chat
-  3. buat folder storage/chat
+  3. artworks.deleted_at (untuk fitur hapus karya)
+  4. buat folder storage/chat
 
 Catatan: gambar karya yang SUDAH diupload sebelumnya tetap berisi watermark format lama
 (teks polos di dalam piksel). Gambar itu tidak diubah karena hash-nya sudah tercatat di
@@ -58,6 +59,13 @@ def main():
                 else:
                     cur.execute("ALTER TABLE messages ADD COLUMN %s %s" % (nama, tipe))
                     print("[ok] messages.%s ditambahkan" % nama)
+
+            # --- 3. hapus karya (soft delete) ---
+            if kolom_ada(cur, "artworks", "deleted_at"):
+                print("[lewati] artworks.deleted_at sudah ada")
+            else:
+                cur.execute("ALTER TABLE artworks ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL")
+                print("[ok] artworks.deleted_at ditambahkan")
         db.commit()
     finally:
         db.close()

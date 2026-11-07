@@ -164,7 +164,7 @@ def verifikasi(cur, folder_file):
 
     # ---- cocokkan rantai dengan data karya di database & file di disk ----
     hasil_karya = []
-    cur.execute("SELECT id, title, owner_id, file_hash, file_path, file_nonce "
+    cur.execute("SELECT id, title, owner_id, file_hash, file_path, file_nonce, deleted_at "
                 "FROM artworks ORDER BY id")
     for k in cur.fetchall():
         masalah = []
@@ -176,6 +176,13 @@ def verifikasi(cur, folder_file):
                 masalah.append("Hash file di database berbeda dengan yang tercatat di blockchain")
             if rantai["pemilik"] != k["owner_id"]:
                 masalah.append("Pemilik di database berbeda dengan pemilik menurut blockchain")
+
+        if k["deleted_at"] is not None:
+            # Karya dihapus kreator: file di disk memang sudah dihapus, jadi tidak diperiksa.
+            # Catatan di rantai (hash, pemilik) tetap dicocokkan di atas.
+            hasil_karya.append({"id": k["id"], "title": k["title"] + " (dihapus)",
+                                "ok": not masalah, "masalah": masalah})
+            continue
 
         try:
             with open(os.path.join(folder_file, k["file_path"]), "rb") as f:

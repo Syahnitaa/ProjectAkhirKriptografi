@@ -152,6 +152,7 @@ async function ambil() {
   try {
     const res = await fetch(URL_DASAR + "/pesan?after=" + terakhir);
     const hasil = await res.json();
+    if (hasil.dihapus) { tutupChat(hasil.pesan); return; }      // karya dihapus kreator saat chat terbuka
     if (!hasil.ok || hasil.pesan.length === 0) return;
     const pertama = terakhir === 0;
     let menempel = false;
@@ -162,15 +163,105 @@ async function ambil() {
 
 // ---------- kirim ----------
 const semuaTombol = ["kirim", "tombolFile", "tombolRahasia", "kirimRahasia"].map((i) => document.getElementById(i));
-function kunci(ya) { semuaTombol.forEach((t) => { t.disabled = ya; }); }
+const tombolKirim = document.getElementById("kirim");
+const tombolKirimRahasia = document.getElementById("kirimRahasia");
+const tray = document.getElementById("lampiranTray");
+const fPenutup = document.getElementById("fPenutup");
+const fRahasia = document.getElementById("fRahasia");
+let sedangKirim = false;
+let lampiran = null;                   // file yang sudah dipilih tapi BELUM dikirim (menunggu Send)
+
+function kunci(ya) {
+  sedangKirim = ya;
+  document.getElementById("tombolFile").disabled = ya;
+  document.getElementById("tombolRahasia").disabled = ya;
+  perbaruiTombol();
+}
+
+// Tombol Send hanya aktif kalau ada yang bisa dikirim (teks atau lampiran)
+function perbaruiTombol() {
+  tombolKirim.disabled = sedangKirim || (!teks.value.trim() && !lampiran);
+  tombolKirimRahasia.disabled = sedangKirim || !fPenutup.files[0] || !fRahasia.files[0];
+}
+
+// ---------- pratinjau sebelum kirim ----------
+let urlPratinjau = null;
+function bersihUrl() { if (urlPratinjau) { URL.revokeObjectURL(urlPratinjau); urlPratinjau = null; } }
+
+function ukuranTeks(b) {
+  if (b < 1024) return b + " B";
+  if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
+  return (b / 1048576).toFixed(1) + " MB";
+}
+
+function batalLampiran() {
+  lampiran = null;
+  bersihUrl();
+  tray.hidden = true;
+  tray.replaceChildren();
+  perbaruiTombol();
+}
+
+function pilihLampiran(berkas) {
+  const batas = parseFloat(infoChat.maksFile || "10") * 1048576;
+  if (berkas.size > batas) { tampilStatus("File terlalu besar (maksimal " + ukuranTeks(batas) + ")", true); return; }
+  if (berkas.size === 0) { tampilStatus("File kosong", true); return; }
+
+  bersihUrl();
+  lampiran = berkas;
+  tampilStatus("");
+
+  const kartu = el("div", "lampiran-pratinjau");
+  if (berkas.type.startsWith("image/")) {
+    urlPratinjau = URL.createObjectURL(berkas);
+    const img = el("img", "pratinjau-img");
+    img.alt = "Pratinjau";
+    img.src = urlPratinjau;
+    kartu.append(img);
+  } else {
+    kartu.append(el("div", "pratinjau-ikon", "📎"));
+  }
+  const info = el("div", "pratinjau-info");
+  info.append(el("b", null, berkas.name), el("span", "kecil", ukuranTeks(berkas.size) + " · akan dienkripsi ChaCha20"),
+              el("span", "kecil", "Tekan Send untuk mengirim. Teks di kotak pesan ikut jadi keterangan; untuk kirim teks saja, batalkan lampiran (✕)."));
+  const hapus = el("button", "ikon-batal", "✕");
+  hapus.type = "button";
+  hapus.title = "Batalkan";
+  hapus.onclick = batalLampiran;
+  kartu.append(info, hapus);
+
+  tray.replaceChildren(kartu);
+  tray.hidden = false;
+  perbaruiTombol();
+  teks.focus();
+}
+
+// Pratinjau kecil untuk dua gambar di panel gambar rahasia
+function pratinjauSlot(input, kotakId) {
+  const kotak = document.getElementById(kotakId);
+  const berkas = input.files[0];
+  if (kotak.dataset.url) { URL.revokeObjectURL(kotak.dataset.url); kotak.dataset.url = ""; }
+  if (!berkas) { kotak.replaceChildren(document.createTextNode("No image selected")); perbaruiTombol(); return; }
+  const url = URL.createObjectURL(berkas);
+  kotak.dataset.url = url;
+  const img = el("img");
+  img.src = url;
+  img.alt = "Pratinjau";
+  kotak.replaceChildren(img, el("span", "kecil", berkas.name + " · " + ukuranTeks(berkas.size)));
+  perbaruiTombol();
+}
+fPenutup.addEventListener("change", () => pratinjauSlot(fPenutup, "prevPenutup"));
+fRahasia.addEventListener("change", () => pratinjauSlot(fRahasia, "prevRahasia"));
 
 async function selesaiKirim(jawaban) {
   if (jawaban.ok) {
     teks.value = "";
     tampilStatus(jawaban.pesan || "");
+    perbaruiTombol();
     await ambil();
   } else {
     tampilStatus(jawaban.pesan || "Gagal mengirim", true);
+    if (jawaban.dihapus) tutupChat(jawaban.pesan);
   }
 }
 
@@ -194,7 +285,9 @@ async function kirimBerkas(berkas) {
   kunci(true);
   tampilStatus("🔐 Mengenkripsi (ChaCha20) & mengirim " + berkas.name + "...");
   try {
-    await selesaiKirim(await kirimForm(URL_DASAR + "/kirim-file", form));
+    const jawaban = await kirimForm(URL_DASAR + "/kirim-file", form);
+    await selesaiKirim(jawaban);
+    if (jawaban.ok) batalLampiran();     // terkirim -> bersihkan pratinjau (kalau gagal, tetap ada untuk dicoba lagi)
   } catch (e) {
     tampilStatus("Gagal mengirim file, coba lagi", true);
   }
@@ -217,8 +310,10 @@ async function kirimRahasia() {
     await selesaiKirim(jawaban);
     if (jawaban.ok) {
       panelRahasia.hidden = true;
-      document.getElementById("fPenutup").value = "";
-      document.getElementById("fRahasia").value = "";
+      fPenutup.value = "";
+      fRahasia.value = "";
+      pratinjauSlot(fPenutup, "prevPenutup");
+      pratinjauSlot(fRahasia, "prevRahasia");
     }
   } catch (e) {
     tampilStatus("Gagal mengirim gambar rahasia, coba lagi", true);
@@ -228,12 +323,20 @@ async function kirimRahasia() {
 
 // ---------- tombol ----------
 const pilihFile = document.getElementById("pilihFile");
-document.getElementById("kirim").onclick = kirimTeks;
-teks.addEventListener("keydown", (e) => { if (e.key === "Enter") kirimTeks(); });
+
+// Send: kalau ada lampiran -> kirim lampiran (teks jadi keterangan); kalau tidak -> kirim teks
+function kirimSekarang() {
+  if (sedangKirim) return;
+  if (lampiran) kirimBerkas(lampiran);
+  else kirimTeks();
+}
+tombolKirim.onclick = kirimSekarang;
+teks.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); kirimSekarang(); } });
+teks.addEventListener("input", perbaruiTombol);
 
 document.getElementById("tombolFile").onclick = () => pilihFile.click();
 pilihFile.onchange = () => {
-  if (pilihFile.files[0]) kirimBerkas(pilihFile.files[0]);
+  if (pilihFile.files[0]) pilihLampiran(pilihFile.files[0]);   // hanya pratinjau, belum terkirim
   pilihFile.value = "";                  // supaya file yang sama bisa dipilih lagi
 };
 
@@ -241,5 +344,21 @@ document.getElementById("tombolRahasia").onclick = () => { panelRahasia.hidden =
 document.getElementById("batalRahasia").onclick = () => { panelRahasia.hidden = true; };
 document.getElementById("kirimRahasia").onclick = kirimRahasia;
 
+// Karya dihapus: hentikan polling, kunci semua input, beri tahu pengguna
+function tutupChat(pesan) {
+  clearInterval(pemantau);
+  lampiran = null;
+  teks.disabled = true;
+  document.getElementById("tombolFile").disabled = true;
+  document.getElementById("tombolRahasia").disabled = true;
+  tombolKirim.disabled = true;
+  tombolKirimRahasia.disabled = true;
+  panelRahasia.hidden = true;
+  tray.hidden = true;
+  kunci = () => {};                      // cegah tombol hidup lagi setelah proses kirim yang sedang berjalan
+  tampilStatus(pesan, true);
+}
+
+perbaruiTombol();
 ambil();
-setInterval(ambil, 2500);                // cek pesan baru tiap 2,5 detik
+const pemantau = setInterval(ambil, 2500);                // cek pesan baru tiap 2,5 detik

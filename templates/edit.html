@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Artwork | CipherArt{% endblock %}
+
+{% block isi %}
+
+<div class="page-heading">
+    <span class="eyebrow">CREATOR STUDIO</span>
+    <h1>Edit Artwork</h1>
+    <p>Update the title, description, or price of your artwork.</p>
+</div>
+
+<div class="content-card" style="max-width:850px;margin:auto;">
+
+    <form method="POST">
+
+        <label for="title">Artwork Title</label>
+        <input type="text" id="title" name="title" maxlength="150" value="{{ k.title }}" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description">{{ k.description or '' }}</textarea>
+
+        <label for="price">Price (IDR)</label>
+        <input type="number" id="price" name="price" min="1" value="{{ k.harga }}" required>
+
+        <label>Artwork Image</label>
+        <div style="padding:20px;border-radius:18px;background:var(--surface-soft);text-align:center;">
+            <img src="/static/{{ k.preview_path }}" alt="{{ k.title }}"
+                 style="max-height:260px;max-width:100%;border-radius:15px;object-fit:contain;">
+            <p class="kecil" style="margin-bottom:0;">
+                The image cannot be replaced: its SHA-256 hash is already recorded on the blockchain.
+                To use a different image, upload a new artwork.
+            </p>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;">
+            <button type="submit">Save Changes</button>
+            <a href="/karya-saya" class="btn btn-secondary">Cancel</a>
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

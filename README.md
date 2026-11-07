@@ -15,6 +15,18 @@ python app.py                       # buka http://127.0.0.1:5000
 Ubah `config.py` sesuai komputer (password MySQL, `SECRET_KEY`, `MASTER_KEY`).
 **Jangan ganti `MASTER_KEY` setelah ada data**, semua data terenkripsi tidak bisa dibuka lagi.
 
+## Fitur marketplace
+
+- **Discover**: pencarian (judul, deskripsi, kreator), filter harga, urutan. Hanya menampilkan karya yang masih tersedia.
+- **Edit / hapus karya** (kreator, hanya karya yang belum terjual): judul, deskripsi, harga bisa diubah; gambar tidak
+  (hash-nya sudah di blockchain). Hapus = soft delete (kolom `deleted_at`): file terenkripsi, pratinjau, dan file chat
+  karya itu dihapus dari disk, tetapi block blockchain tetap utuh. **Jalankan `python migrasi.py` sekali** untuk menambah kolom.
+- **Riwayat** (`/riwayat`): kolektor = pembelian, kreator = penjualan.
+- **Profil** (`/profil`): ganti password wajib password lama + verifikasi wajah. Gagal `FACE_MAX_GAGAL` kali ->
+  dikunci `KUNCI_GAGAL_DETIK` detik (dicatat di memori server, hilang jika aplikasi di-restart).
+- **Chat**: file / gambar tampil sebagai pratinjau dulu, terkirim setelah menekan Send.
+  Kreator hanya bisa chat soal karyanya sendiri; karya terjual hanya bisa di-chat oleh pemilik baru dan kreator.
+
 ## Donggle (flashdisk sebagai kunci fisik)
 
 Aplikasi **hanya bisa hidup dan dipakai kalau flashdisk donggle tercolok**.

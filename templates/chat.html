@@ -58,15 +58,22 @@
             (makin besar rahasianya, makin besar penutup yang dibutuhkan).
         </p>
 
-        <label>Cover Image (Visible Image)</label>
-        <input type="file" id="fPenutup" accept="image/png,image/jpeg">
-
-        <label>Secret Image (Hidden Image)</label>
-        <input type="file" id="fRahasia" accept="image/png,image/jpeg">
+        <div class="rahasia-slot">
+            <div>
+                <label>Cover Image (Visible Image)</label>
+                <input type="file" id="fPenutup" accept="image/png,image/jpeg">
+                <div class="slot-preview" id="prevPenutup">No image selected</div>
+            </div>
+            <div>
+                <label>Secret Image (Hidden Image)</label>
+                <input type="file" id="fRahasia" accept="image/png,image/jpeg">
+                <div class="slot-preview" id="prevRahasia">No image selected</div>
+            </div>
+        </div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px;">
 
-            <button type="button" id="kirimRahasia">
+            <button type="button" id="kirimRahasia" disabled>
                 🔒 Hide & Send
             </button>
 
@@ -77,6 +84,8 @@
         </div>
 
     </div>
+
+    <div id="lampiranTray" class="lampiran-tray" hidden></div>
 
     <div class="chat-input">
 
@@ -106,7 +115,7 @@
             autocomplete="off"
         >
 
-        <button type="button" id="kirim">
+        <button type="button" id="kirim" disabled>
             Send
         </button>
 
@@ -117,9 +126,9 @@
     <p id="status" class="kecil" style="padding:0 12px;"></p>
 
     <p class="kecil" style="padding:0 12px;">
-        Teks yang diisi di kotak pesan ikut terkirim sebagai
-        keterangan saat mengirim file / gambar.
-        Maksimal file {{ maks_file_mb }} MB.
+        File yang dipilih tampil sebagai pratinjau dulu dan baru terkirim
+        setelah kamu menekan Send. Teks di kotak pesan ikut terkirim sebagai
+        keterangan. Maksimal file {{ maks_file_mb }} MB.
     </p>
 
 </div>
@@ -127,7 +136,8 @@
 <div id="data-chat"
      hidden
      data-url="/chat/{{ karya.id }}/{{ lawan.id }}"
-     data-debug="{{ 'true' if debug else 'false' }}">
+     data-debug="{{ 'true' if debug else 'false' }}"
+     data-maks-file="{{ maks_file_mb }}">
 </div>
 
 <script src="/static/chat.js"></script>

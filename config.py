@@ -14,7 +14,8 @@ MASTER_KEY = "ganti-kunci-enkripsi-ini"     # untuk enkripsi data (AES)
 REQUIRE_FACE = True       # True = daftar & login wajib wajah. False = dilewati (testing)
 FACE_THRESHOLD = 0.45     # batas jarak wajah saat login. Makin KECIL makin ketat
 FACE_ENROLL_MAX = 0.40    # batas konsistensi rekaman wajah saat daftar
-FACE_MAX_GAGAL = 3        # gagal verifikasi wajah sebanyak ini -> harus login ulang dari awal
+FACE_MAX_GAGAL = 3        # gagal verifikasi wajah / ganti password sebanyak ini -> dikunci sementara
+KUNCI_GAGAL_DETIK = 300     # lama penguncian (detik) setelah terlalu banyak gagal, dicatat di server
 DEBUG_JARAK = True        # True = tampilkan angka jarak (untuk kalibrasi). Matikan saat demo akhir
 
 # ---------- Chat ----------

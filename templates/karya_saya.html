@@ -8,17 +8,24 @@
 
 <section class="gallery-hero">
     <div>
-        <span class="eyebrow">CREATOR WORKSPACE</span>
+        <span class="eyebrow">{% if session['role'] == 'creator' %}CREATOR WORKSPACE{% else %}COLLECTOR VAULT{% endif %}</span>
         <h1>{{ judul or 'My Artwork' }}</h1>
         <p>
+            {% if session['role'] == 'creator' %}
             Manage your digital creations, access original files,
             and track your artwork ownership.
+            {% else %}
+            Access the original files of the artworks you own
+            and track your ownership.
+            {% endif %}
         </p>
     </div>
 
+    {% if session['role'] == 'creator' %}
     <a href="/upload" class="btn btn-primary">
         + Upload Artwork
     </a>
+    {% endif %}
 </section>
 
 {% if karya %}
@@ -36,7 +43,11 @@
     <div style="font-size:48px;">◇</div>
     <h2>Your collection is waiting</h2>
     <p>{{ kosong or 'Belum ada karya.' }}</p>
+    {% if session['role'] == 'creator' %}
     <a href="/upload" class="btn btn-primary">Upload Artwork</a>
+    {% else %}
+    <a href="/" class="btn btn-primary">Explore Artworks</a>
+    {% endif %}
 </div>
 
 {% endif %}

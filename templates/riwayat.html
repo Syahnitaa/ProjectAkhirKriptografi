@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Sales' if kreator else 'Purchase' }} History | CipherArt{% endblock %}
+{% block kelas %}lebar{% endblock %}
+
+{% block isi %}
+
+<section class="page-heading">
+    <span class="eyebrow">TRANSACTIONS</span>
+    <h1>{{ 'Sales' if kreator else 'Purchase' }} History</h1>
+    <p>
+        {% if kreator %}
+        Every artwork of yours that has been sold to a collector.
+        {% else %}
+        Every artwork you have purchased on CipherArt.
+        {% endif %}
+    </p>
+</section>
+
+{% if daftar %}
+
+<div class="stat-row">
+    <div class="stat">
+        <span class="kecil">{{ 'Artworks sold' if kreator else 'Artworks purchased' }}</span>
+        <strong>{{ daftar|length }}</strong>
+    </div>
+    <div class="stat">
+        <span class="kecil">{{ 'Total revenue' if kreator else 'Total spent' }}</span>
+        <strong>{{ total | rupiah }}</strong>
+    </div>
+</div>
+
+<div class="gulir">
+    <table class="tabel">
+        <tr>
+            <th>Artwork</th>
+            <th>{{ 'Buyer' if kreator else 'Seller' }}</th>
+            <th>Price</th>
+            <th>Date</th>
+        </tr>
+        {% for t in daftar %}
+        <tr>
+            <td>
+                <a href="/karya/{{ t.artwork_id }}" class="riwayat-karya">
+                    <img src="/static/{{ t.preview_path }}" alt="{{ t.title }}">
+                    <span>{{ t.title }}</span>
+                </a>
+            </td>
+            <td>{{ t.lawan }}</td>
+            <td><strong>{{ t.harga | rupiah }}</strong></td>
+            <td>{{ t.waktu }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% else %}
+
+<div class="content-card" style="text-align:center;padding:65px 25px;">
+    <div style="font-size:48px;">◇</div>
+    <h2>No transactions yet</h2>
+    <p>
+        {% if kreator %}
+        When a collector buys one of your artworks, it will appear here.
+        {% else %}
+        Artworks you purchase will appear here.
+        {% endif %}
+    </p>
+    {% if not kreator %}
+    <a href="/" class="btn btn-primary">Explore Artworks</a>
+    {% endif %}
+</div>
+
+{% endif %}
+
+{% endblock %}

@@ -55,6 +55,10 @@
                 </a>
             {% endif %}
 
+            <a href="/riwayat" class="{% if request.path == '/riwayat' %}active{% endif %}">
+                History
+            </a>
+
             <a href="/chat" class="{% if '/chat' in request.path %}active{% endif %}">
                 Messages
             </a>
@@ -70,19 +74,22 @@
             <div class="nav-mobile-account">
                 <span>{{ session['username'] }}</span>
                 <small>{{ session['role'] }}</small>
+                <a href="/profil">Profile</a>
                 <a href="/logout" class="logout-link">Sign Out</a>
             </div>
         </nav>
 
         <div class="header-account">
-            <div class="account-avatar">
-                {{ session['username'][0]|upper }}
-            </div>
+            <a href="/profil" class="account-link" title="Profile">
+                <div class="account-avatar">
+                    {{ session['username'][0]|upper }}
+                </div>
 
-            <div class="account-info">
-                <strong>{{ session['username'] }}</strong>
-                <small>{{ session['role']|capitalize }}</small>
-            </div>
+                <div class="account-info">
+                    <strong>{{ session['username'] }}</strong>
+                    <small>{{ session['role']|capitalize }}</small>
+                </div>
+            </a>
 
             <a href="/logout" class="logout-icon" title="Logout">
                 ↗

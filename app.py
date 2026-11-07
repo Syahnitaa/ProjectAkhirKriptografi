@@ -5,6 +5,7 @@ import math
 import os
 import re
 import secrets
+import time
 from datetime import datetime
 from functools import wraps
 
@@ -148,6 +149,41 @@ def ambil_user_pending():
         db.close()
 
 
+# Pembatasan percobaan gagal DI SERVER (bukan di cookie, yang bisa dibuang penyerang).
+# Disimpan di memori proses: cukup untuk satu server; hilang kalau aplikasi di-restart.
+_GAGAL = {}                                    # kunci -> [jumlah gagal, waktu gagal terakhir, terkunci sampai]
+KUNCI_DETIK = getattr(config, "KUNCI_GAGAL_DETIK", 300)
+
+
+def sisa_kunci(kunci):
+    """Detik tersisa sampai kunci dibuka. 0 = tidak terkunci."""
+    d = _GAGAL.get(kunci)
+    if not d:
+        return 0
+    if d[2] > time.time():
+        return int(d[2] - time.time()) + 1
+    if d[2] or time.time() - d[1] > KUNCI_DETIK:    # kunci habis / percobaan lama sudah kedaluwarsa
+        _GAGAL.pop(kunci, None)
+    return 0
+
+
+def catat_gagal(kunci):
+    """Catat satu kegagalan. Hasil: (jumlah_gagal, detik_terkunci). Detik > 0 = baru saja terkunci."""
+    d = _GAGAL.setdefault(kunci, [0, 0, 0])
+    if time.time() - d[1] > KUNCI_DETIK:
+        d[0] = 0
+    d[0] += 1
+    d[1] = time.time()
+    if d[0] >= config.FACE_MAX_GAGAL:
+        d[2] = d[1] + KUNCI_DETIK
+        return d[0], KUNCI_DETIK
+    return d[0], 0
+
+
+def reset_gagal(kunci):
+    _GAGAL.pop(kunci, None)
+
+
 def jarak_wajah(a, b):
     """Jarak Euclidean antara 2 vektor wajah. Makin kecil = makin mirip."""
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
@@ -181,11 +217,68 @@ def proses_rekaman_wajah(daftar):
 # =====================================================
 # Halaman utama
 # =====================================================
+URUTAN = {
+    "terbaru": "Terbaru",
+    "terlama": "Terlama",
+    "termurah": "Harga: termurah",
+    "termahal": "Harga: termahal",
+    "judul": "Judul A-Z",
+}
+
+
+def angka_atau_none(teks):
+    """'150000' -> 150000. Kosong / bukan angka positif -> None (filter dilewati)."""
+    teks = (teks or "").strip()
+    return int(teks) if teks.isdigit() and len(teks) <= 12 else None
+
+
+def escape_like(teks):
+    """Supaya karakter % dan _ yang diketik pengguna dicari apa adanya, bukan jadi wildcard."""
+    return teks.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 @app.route("/")
 @wajib_login
 def home():
-    karya = ambil_karya("WHERE a.status = 'available'", ())
-    return render_template("home.html", karya=karya)
+    """
+    Discover: galeri + pencarian & filter (semua lewat query string, mis. /?q=senja&status=all&min=100000).
+      q      : kata kunci, dicari di judul, deskripsi, dan nama kreator
+      min/max: rentang harga (harga terenkripsi di DB, jadi disaring di Python setelah didekripsi)
+      urut   : terbaru (bawaan) | terlama | termurah | termahal | judul
+    """
+    q = request.args.get("q", "").strip()[:100]
+    urut = request.args.get("urut", "terbaru")
+    if urut not in URUTAN:
+        urut = "terbaru"
+    harga_min = angka_atau_none(request.args.get("min"))
+    harga_max = angka_atau_none(request.args.get("max"))
+
+    kondisi, param = ["a.status = 'available'"], []      # Discover hanya menampilkan karya yang masih dijual
+    if q:
+        like = "%" + escape_like(q) + "%"
+        kondisi.append("(a.title LIKE %s OR a.description LIKE %s OR u.username LIKE %s)")
+        param += [like, like, like]
+    karya = ambil_karya(" AND ".join(kondisi), tuple(param))
+
+    if harga_min is not None:
+        karya = [k for k in karya if k["harga"] >= harga_min]
+    if harga_max is not None:
+        karya = [k for k in karya if k["harga"] <= harga_max]
+
+    if urut == "terlama":
+        karya.reverse()                                   # SQL mengurutkan terbaru dulu
+    elif urut == "termurah":
+        karya.sort(key=lambda k: k["harga"])
+    elif urut == "termahal":
+        karya.sort(key=lambda k: -k["harga"])
+    elif urut == "judul":
+        karya.sort(key=lambda k: k["title"].lower())
+
+    filter_aktif = bool(q or harga_min is not None or harga_max is not None or urut != "terbaru")
+    return render_template("home.html", karya=karya, urutan=URUTAN, filter_aktif=filter_aktif,
+                           f={"q": q, "urut": urut,
+                              "min": harga_min if harga_min is not None else "",
+                              "max": harga_max if harga_max is not None else ""})
 
 
 # =====================================================
@@ -293,6 +386,13 @@ def face_verify():
     if request.method == "GET":
         return render_template("face_verify.html")
 
+    kunci = "wajah:%d" % user["id"]
+    if sisa_kunci(kunci):
+        session.clear()
+        flash("Verifikasi wajah dikunci sementara karena terlalu banyak percobaan gagal.")
+        return jsonify(ok=False, redirect="/login",
+                       pesan="Terlalu banyak percobaan gagal. Coba lagi dalam beberapa menit")
+
     data = request.get_json() or {}
     daftar = data.get("descriptors")
 
@@ -306,16 +406,17 @@ def face_verify():
 
     # SEMUA rekaman harus cocok (bukan cuma salah satu)
     if terjauh < config.FACE_THRESHOLD:
+        reset_gagal(kunci)
         selesai_login(user)
         return jsonify(ok=True, redirect="/",
                        pesan="Wajah cocok!" + (" (jarak %.2f)" % terjauh if config.DEBUG_JARAK else ""))
 
     # Gagal: hitung percobaan, kalau kebanyakan harus login ulang dari awal
-    gagal = session.get("gagal_wajah", 0) + 1
+    gagal, terkunci = catat_gagal(kunci)
     session["gagal_wajah"] = gagal
     info = " (jarak %.2f)" % terjauh if config.DEBUG_JARAK else ""
 
-    if gagal >= config.FACE_MAX_GAGAL:
+    if terkunci:
         session.clear()
         flash("Verifikasi wajah gagal %d kali. Silakan login ulang." % config.FACE_MAX_GAGAL)
         return jsonify(ok=False, redirect="/login",
@@ -329,12 +430,17 @@ def face_verify():
 # Karya digital: ambil data
 # =====================================================
 def ambil_karya(kondisi, parameter):
-    """Ambil daftar karya + nama kreator/pemilik. Harga didekripsi (AES) di sini."""
+    """
+    Ambil daftar karya + nama kreator/pemilik. Harga didekripsi (AES) di sini.
+    'kondisi' = isi WHERE tanpa kata WHERE (alias: a = artworks, u = kreator, o = pemilik).
+    Karya yang sudah dihapus kreator (deleted_at terisi) tidak pernah ikut.
+    """
     sql = ("SELECT a.*, u.username AS creator_name, o.username AS owner_name "
            "FROM artworks a "
            "JOIN users u ON a.creator_id = u.id "
            "JOIN users o ON a.owner_id = o.id "
-           + kondisi + " ORDER BY a.created_at DESC")
+           "WHERE a.deleted_at IS NULL AND (" + kondisi + ") "
+           "ORDER BY a.created_at DESC, a.id DESC")
     db = get_db()
     try:
         with db.cursor() as cur:
@@ -353,7 +459,7 @@ def ambil_karya(kondisi, parameter):
 @wajib_role("creator")
 def karya_saya():
     uid = session["user_id"]
-    karya = ambil_karya("WHERE a.creator_id = %s OR a.owner_id = %s", (uid, uid))
+    karya = ambil_karya("a.creator_id = %s OR a.owner_id = %s", (uid, uid))
     return render_template("karya_saya.html", karya=karya)
 
 
@@ -380,6 +486,9 @@ def upload():
 
     if not judul or not berkas or berkas.filename == "":
         flash("Judul dan gambar wajib diisi")
+        return redirect("/upload")
+    if len(judul) > 150:
+        flash("Judul maksimal 150 karakter")
         return redirect("/upload")
     if not harga.isdigit() or int(harga) <= 0:
         flash("Harga harus berupa angka lebih dari 0")
@@ -454,12 +563,112 @@ def upload():
 
 
 # =====================================================
+# Edit & hapus karya (khusus kreator pemilik karya)
+#   Aturan:
+#     - hanya kreator yang MASIH memegang karyanya (belum terjual)
+#     - yang bisa diubah: judul, deskripsi, harga. Gambar TIDAK bisa diganti karena
+#       hash file-nya sudah dicatat di blockchain (ganti gambar = ganti karya, upload baru saja)
+#     - hapus = soft delete: baris karya & riwayat blockchain tetap ada (rantai tidak boleh putus),
+#       tapi karya hilang dari semua halaman, dan file terenkripsi + pratinjau dihapus dari disk
+# =====================================================
+def alasan_tak_boleh_ubah(k):
+    """Pesan alasan kalau karya tidak boleh diubah / dihapus pengguna ini. None = boleh."""
+    if not k or k["deleted_at"] is not None:
+        return "Karya tidak ditemukan"
+    if k["creator_id"] != session["user_id"]:
+        return "Kamu tidak berhak mengubah karya ini"
+    if k["status"] != "available" or k["owner_id"] != session["user_id"]:
+        return "Karya yang sudah terjual tidak bisa diubah atau dihapus"
+    return None
+
+
+@app.route("/karya/<int:karya_id>/edit", methods=["GET", "POST"])
+@wajib_login
+@wajib_role("creator")
+def edit_karya(karya_id):
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            # FOR UPDATE: kalau ada yang membeli bersamaan, salah satunya menunggu (tidak bentrok)
+            cur.execute("SELECT * FROM artworks WHERE id=%s FOR UPDATE", (karya_id,))
+            k = cur.fetchone()
+            alasan = alasan_tak_boleh_ubah(k)
+            if alasan:
+                flash(alasan)
+                return redirect("/karya-saya")
+
+            if request.method == "GET":
+                k["harga"] = int(aes_decrypt(k["price_enc"]))
+                return render_template("edit.html", k=k)
+
+            judul = request.form.get("title", "").strip()
+            deskripsi = request.form.get("description", "").strip()
+            harga = request.form.get("price", "").strip()
+            if not judul:
+                flash("Judul wajib diisi")
+                return redirect("/karya/%d/edit" % karya_id)
+            if len(judul) > 150:
+                flash("Judul maksimal 150 karakter")
+                return redirect("/karya/%d/edit" % karya_id)
+            if not harga.isdigit() or int(harga) <= 0:
+                flash("Harga harus berupa angka lebih dari 0")
+                return redirect("/karya/%d/edit" % karya_id)
+
+            cur.execute("UPDATE artworks SET title=%s, description=%s, price_enc=%s WHERE id=%s",
+                        (judul, deskripsi, aes_encrypt(harga), karya_id))
+        db.commit()
+    finally:
+        db.close()
+
+    flash("Karya berhasil diperbarui")
+    return redirect("/karya-saya")
+
+
+@app.route("/karya/<int:karya_id>/hapus", methods=["POST"])
+@wajib_login
+@wajib_role("creator")
+def hapus_karya(karya_id):
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT * FROM artworks WHERE id=%s FOR UPDATE", (karya_id,))
+            k = cur.fetchone()
+            alasan = alasan_tak_boleh_ubah(k)
+            if alasan:
+                flash(alasan)
+                return redirect("/karya-saya")
+            cur.execute("UPDATE artworks SET deleted_at=NOW() WHERE id=%s", (karya_id,))
+            cur.execute("SELECT file_path FROM messages WHERE artwork_id=%s AND file_path IS NOT NULL", (karya_id,))
+            file_chat = [m["file_path"] for m in cur.fetchall()]
+        db.commit()
+    finally:
+        db.close()
+
+    # File di disk dihapus SETELAH database berhasil (kalau gagal di sini, karya tetap sudah terhapus
+    # dari tampilan; sisa file hanya sampah). Nama file dibatasi ke dalam folder masing-masing.
+    for folder, nama in ((STORAGE_DIR, k["file_path"]),
+                         (PREVIEW_DIR, os.path.basename(k["preview_path"]))):
+        try:
+            os.remove(os.path.join(folder, os.path.basename(nama)))
+        except OSError:
+            pass
+    for nama in file_chat:                          # file & gambar rahasia di chat karya ini juga dibuang
+        try:
+            os.remove(os.path.join(CHAT_DIR, os.path.basename(nama)))
+        except OSError:
+            pass
+
+    flash("Karya “%s” sudah dihapus. Catatan di blockchain tetap tersimpan." % k["title"])
+    return redirect("/karya-saya")
+
+
+# =====================================================
 # Detail karya + BELI
 # =====================================================
 @app.route("/karya/<int:karya_id>")
 @wajib_login
 def detail_karya(karya_id):
-    hasil = ambil_karya("WHERE a.id = %s", (karya_id,))
+    hasil = ambil_karya("a.id = %s", (karya_id,))
     if not hasil:
         flash("Karya tidak ditemukan")
         return redirect("/")
@@ -494,14 +703,20 @@ def beli(karya_id):
             # FOR UPDATE: kunci baris karya, supaya 2 pembeli tidak bisa membeli bersamaan
             cur.execute("SELECT * FROM artworks WHERE id=%s FOR UPDATE", (karya_id,))
             k = cur.fetchone()
-            if not k:
-                flash("Karya tidak ditemukan")
+            if not k or k["deleted_at"] is not None:
+                flash("Karya tidak ditemukan atau sudah dihapus oleh kreatornya")
                 return redirect("/")
             if k["status"] != "available":
                 flash("Maaf, karya ini sudah terjual")
                 return redirect("/karya/%d" % karya_id)
             if k["owner_id"] == pembeli_id:
                 flash("Karya ini sudah milikmu")
+                return redirect("/karya/%d" % karya_id)
+
+            # Harga yang dilihat pembeli harus sama dengan harga sekarang (kreator bisa mengedit harga)
+            harga_sekarang = int(aes_decrypt(k["price_enc"]))
+            if request.form.get("harga", "") != str(harga_sekarang):
+                flash("Harga karya berubah menjadi %s. Periksa lagi lalu beli kembali." % rupiah(harga_sekarang))
                 return redirect("/karya/%d" % karya_id)
 
             penjual_id = k["owner_id"]
@@ -527,9 +742,143 @@ def beli(karya_id):
 @wajib_login
 @wajib_role("collector")
 def koleksi():
-    karya = ambil_karya("WHERE a.owner_id = %s", (session["user_id"],))
+    karya = ambil_karya("a.owner_id = %s", (session["user_id"],))
     return render_template("karya_saya.html", karya=karya, judul="Koleksi Saya",
                            kosong="Belum ada karya yang kamu beli. Lihat Galeri untuk mulai membeli.")
+
+
+# =====================================================
+# Riwayat transaksi
+#   Kolektor : karya yang pernah dia BELI
+#   Kreator  : karya miliknya yang TERJUAL
+# =====================================================
+@app.route("/riwayat")
+@wajib_login
+def riwayat():
+    uid = session["user_id"]
+    kreator = session["role"] == "creator"
+    kolom_saya = "seller_id" if kreator else "buyer_id"        # konstanta, bukan input pengguna
+
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT t.id, t.artwork_id, t.price_enc, t.created_at, a.title, a.preview_path, "
+                "       b.username AS buyer_name, s.username AS seller_name "
+                "FROM transactions t "
+                "JOIN artworks a ON a.id = t.artwork_id "
+                "JOIN users b ON b.id = t.buyer_id "
+                "JOIN users s ON s.id = t.seller_id "
+                "WHERE t." + kolom_saya + " = %s "
+                "ORDER BY t.created_at DESC, t.id DESC", (uid,))
+            daftar = cur.fetchall()
+    finally:
+        db.close()
+
+    total = 0
+    for t in daftar:
+        t["harga"] = int(aes_decrypt(t["price_enc"]))
+        t["lawan"] = t["buyer_name"] if kreator else t["seller_name"]
+        t["waktu"] = t["created_at"].strftime("%d %b %Y, %H:%M")
+        total += t["harga"]
+    return render_template("riwayat.html", daftar=daftar, total=total, kreator=kreator)
+
+
+# =====================================================
+# Profil + ganti password (wajib password lama + verifikasi wajah)
+# =====================================================
+def ambil_user(user_id):
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT * FROM users WHERE id=%s", (user_id,))
+            return cur.fetchone()
+    finally:
+        db.close()
+
+
+@app.route("/profil")
+@wajib_login
+def profil():
+    user = ambil_user(session["user_id"])
+    if not user:
+        session.clear()
+        return redirect("/login")
+    try:
+        email = aes_decrypt(user["email_enc"])
+    except Exception:
+        email = "-"
+    return render_template("profil.html", u=user, email=email,
+                           butuh_wajah=config.REQUIRE_FACE,
+                           punya_wajah=user["face_template_enc"] is not None)
+
+
+def gagal_ganti_password(pesan, kunci):
+    """Jawaban gagal. Terlalu sering gagal -> dikunci sementara di server + logout paksa."""
+    gagal, terkunci = catat_gagal(kunci)
+    if terkunci:
+        session.clear()
+        flash("Terlalu banyak percobaan ganti password yang gagal. Silakan login ulang.")
+        return jsonify(ok=False, redirect="/login", pesan=pesan + ". Terlalu banyak percobaan gagal")
+    return jsonify(ok=False, pesan="%s. Sisa percobaan: %d" % (pesan, config.FACE_MAX_GAGAL - gagal))
+
+
+@app.route("/profil/password", methods=["POST"])
+@wajib_login
+def ganti_password():
+    kunci = "pw:%d" % session["user_id"]
+    sisa = sisa_kunci(kunci)
+    if sisa:
+        return jsonify(ok=False, pesan="Ganti password dikunci sementara. Coba lagi dalam %d detik" % sisa)
+
+    data = request.get_json() or {}
+    lama = str(data.get("lama", ""))
+    baru = str(data.get("baru", ""))
+    ulang = str(data.get("ulang", ""))
+
+    if not lama or not baru or not ulang:
+        return jsonify(ok=False, pesan="Semua kolom wajib diisi")
+    if baru != ulang:
+        return jsonify(ok=False, pesan="Konfirmasi password baru tidak sama")
+    if len(baru) < 6:
+        return jsonify(ok=False, pesan="Password baru minimal 6 karakter")
+    if baru == lama:
+        return jsonify(ok=False, pesan="Password baru harus berbeda dari password lama")
+
+    user = ambil_user(session["user_id"])
+    if not user:
+        session.clear()
+        return jsonify(ok=False, redirect="/login", pesan="Akun tidak ditemukan")
+
+    # Tahap 1: password lama
+    if not bcrypt.checkpw(lama.encode(), user["password_hash"].encode()):
+        return gagal_ganti_password("Password lama salah", kunci)
+
+    # Tahap 2: wajah (SEMUA rekaman harus cocok, aturan yang sama dengan saat login)
+    if config.REQUIRE_FACE:
+        if user["face_template_enc"] is None:
+            return jsonify(ok=False, pesan="Akun ini tidak punya data wajah, tidak bisa verifikasi")
+        daftar = data.get("descriptors")
+        if not isinstance(daftar, list) or len(daftar) != 3 or not all(vektor_valid(d) for d in daftar):
+            return jsonify(ok=False, pesan="Data wajah tidak valid")
+        tersimpan = json.loads(aes_decrypt(user["face_template_enc"]))
+        terjauh = max(jarak_wajah(tersimpan, d) for d in daftar)
+        if terjauh >= config.FACE_THRESHOLD:
+            info = " (jarak %.2f)" % terjauh if config.DEBUG_JARAK else ""
+            return gagal_ganti_password("Wajah tidak cocok" + info, kunci)
+
+    hash_baru = bcrypt.hashpw(baru.encode(), bcrypt.gensalt()).decode()
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute("UPDATE users SET password_hash=%s WHERE id=%s", (hash_baru, user["id"]))
+        db.commit()
+    finally:
+        db.close()
+
+    reset_gagal(kunci)
+    flash("Password berhasil diganti")
+    return jsonify(ok=True, redirect="/profil", pesan="Password berhasil diganti")
 
 
 # =====================================================
@@ -566,7 +915,7 @@ def download(karya_id):
     finally:
         db.close()
 
-    if not k or k["owner_id"] != session["user_id"]:
+    if not k or k["deleted_at"] is not None or k["owner_id"] != session["user_id"]:
         flash("Kamu tidak berhak mengunduh karya ini")
         return redirect("/")
 
@@ -645,7 +994,8 @@ def cek_percakapan(artwork_id, peer_id):
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute("SELECT id, title, owner_id, preview_path FROM artworks WHERE id=%s", (artwork_id,))
+            cur.execute("SELECT id, title, owner_id, creator_id, status, preview_path FROM artworks "
+                        "WHERE id=%s AND deleted_at IS NULL", (artwork_id,))
             karya = cur.fetchone()
             cur.execute("SELECT id, username, role FROM users WHERE id=%s", (peer_id,))
             lawan = cur.fetchone()
@@ -654,7 +1004,33 @@ def cek_percakapan(artwork_id, peer_id):
 
     if not karya or not lawan or karya["owner_id"] not in (saya, peer_id):
         return None, None
+    # Kreator hanya ber-chat soal karyanya sendiri (kreator tidak bisa membeli karya orang lain)
+    if session.get("role") == "creator" and karya["creator_id"] != saya:
+        return None, None
+    # Karya terjual: percakapan hanya antara pemilik baru dan kreatornya
+    if karya["status"] == "sold" and {saya, peer_id} != {karya["owner_id"], karya["creator_id"]}:
+        return None, None
     return karya, lawan
+
+
+def karya_terhapus(artwork_id):
+    """True kalau karya ini ada tapi sudah dihapus kreatornya (untuk pesan yang jelas di chat)."""
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT deleted_at FROM artworks WHERE id=%s", (artwork_id,))
+            k = cur.fetchone()
+    finally:
+        db.close()
+    return bool(k and k["deleted_at"] is not None)
+
+
+def tolak_percakapan(artwork_id):
+    """Jawaban JSON kalau percakapan tidak sah / karya sudah dihapus."""
+    if karya_terhapus(artwork_id):
+        return jsonify(ok=False, dihapus=True,
+                       pesan="Karya ini sudah dihapus oleh kreatornya, percakapan ditutup"), 410
+    return jsonify(ok=False, pesan="Percakapan tidak valid"), 403
 
 
 def buka_pesan(enc):
@@ -721,7 +1097,7 @@ def chat_inbox():
                 "             MAX(id) AS last_id "
                 "      FROM messages WHERE sender_id=%s OR receiver_id=%s "
                 "      GROUP BY artwork_id, IF(sender_id=%s, receiver_id, sender_id)) c "
-                "JOIN artworks a ON a.id = c.artwork_id "
+                "JOIN artworks a ON a.id = c.artwork_id AND a.deleted_at IS NULL "
                 "JOIN users p ON p.id = c.peer_id "
                 "JOIN messages m ON m.id = c.last_id "
                 "ORDER BY c.last_id DESC",
@@ -748,7 +1124,8 @@ def chat_inbox():
 def chat_room(artwork_id, peer_id):
     karya, lawan = cek_percakapan(artwork_id, peer_id)
     if not karya:
-        flash("Percakapan tidak ditemukan")
+        flash("Karya ini sudah dihapus oleh kreatornya" if karya_terhapus(artwork_id)
+              else "Percakapan tidak ditemukan")
         return redirect("/chat")
     return render_template("chat.html", karya=karya, lawan=lawan,
                            debug=config.DEBUG_CHAT,
@@ -760,7 +1137,7 @@ def chat_room(artwork_id, peer_id):
 def chat_kirim(artwork_id, peer_id):
     karya, lawan = cek_percakapan(artwork_id, peer_id)
     if not karya:
-        return jsonify(ok=False, pesan="Percakapan tidak valid"), 403
+        return tolak_percakapan(artwork_id)
 
     teks = str((request.get_json() or {}).get("teks", "")).strip()
     if not teks:
@@ -778,7 +1155,7 @@ def chat_kirim(artwork_id, peer_id):
 def chat_kirim_file(artwork_id, peer_id):
     karya, lawan = cek_percakapan(artwork_id, peer_id)
     if not karya:
-        return jsonify(ok=False, pesan="Percakapan tidak valid"), 403
+        return tolak_percakapan(artwork_id)
 
     berkas = request.files.get("berkas")
     keterangan = request.form.get("keterangan", "").strip()
@@ -810,7 +1187,7 @@ def chat_kirim_file(artwork_id, peer_id):
 def chat_kirim_rahasia(artwork_id, peer_id):
     karya, lawan = cek_percakapan(artwork_id, peer_id)
     if not karya:
-        return jsonify(ok=False, pesan="Percakapan tidak valid"), 403
+        return tolak_percakapan(artwork_id)
 
     f_penutup, f_rahasia = request.files.get("penutup"), request.files.get("rahasia")
     keterangan = request.form.get("keterangan", "").strip()
@@ -985,7 +1362,7 @@ def chat_pesan(artwork_id, peer_id):
     """Dipanggil browser tiap beberapa detik: ambil pesan baru (id > after)."""
     karya, lawan = cek_percakapan(artwork_id, peer_id)
     if not karya:
-        return jsonify(ok=False), 403
+        return tolak_percakapan(artwork_id)
 
     saya = session["user_id"]
     setelah = request.args.get("after", 0, type=int)

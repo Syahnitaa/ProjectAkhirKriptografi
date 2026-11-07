@@ -26,15 +26,57 @@
 <div class="gallery-toolbar">
     <div>
         <h3>Explore Collection</h3>
-        <span class="kecil">Discover artworks from our community</span>
+        <span class="kecil">
+            {% if filter_aktif %}{{ karya|length }} artwork{{ '' if karya|length == 1 else 's' }} found
+            {% else %}Discover artworks from our community{% endif %}
+        </span>
     </div>
 </div>
+
+<form class="filter-bar" method="get" action="/" id="filterForm">
+    <div class="filter-field filter-q">
+        <label for="fq">Search</label>
+        <input type="search" id="fq" name="q" value="{{ f.q }}" maxlength="100"
+               placeholder="Title, description, or creator...">
+    </div>
+
+    <div class="filter-field">
+        <label for="fmin">Min price (Rp)</label>
+        <input type="number" id="fmin" name="min" min="0" value="{{ f.min }}" placeholder="0">
+    </div>
+
+    <div class="filter-field">
+        <label for="fmax">Max price (Rp)</label>
+        <input type="number" id="fmax" name="max" min="0" value="{{ f.max }}" placeholder="No limit">
+    </div>
+
+    <div class="filter-field">
+        <label for="furut">Sort by</label>
+        <select id="furut" name="urut">
+            {% for kode, nama in urutan.items() %}
+            <option value="{{ kode }}" {{ 'selected' if f.urut == kode }}>{{ nama }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-actions">
+        <button type="submit">Apply</button>
+        {% if filter_aktif %}<a href="/" class="btn btn-secondary">Reset</a>{% endif %}
+    </div>
+</form>
 
 {% if karya %}
 <div class="grid" id="artworkGrid">
     {% for k in karya %}
         {% include "_kartu.html" %}
     {% endfor %}
+</div>
+{% elif filter_aktif %}
+<div class="content-card" style="text-align:center;padding:65px 25px;">
+    <div style="font-size:48px;">◇</div>
+    <h2>No matching artworks</h2>
+    <p>Try a different keyword or loosen the filters.</p>
+    <a href="/" class="btn btn-primary">Reset filters</a>
 </div>
 {% else %}
 <div class="content-card" style="text-align:center;padding:65px 25px;">

@@ -40,6 +40,7 @@ CREATE TABLE artworks (
   watermark_enc     TEXT         NOT NULL,            -- teks watermark TERENKRIPSI AES (base64); blob yang sama disisipkan ke piksel via LSB
   price_enc         TEXT         NOT NULL,            -- harga terenkripsi
   status            ENUM('available','sold') NOT NULL DEFAULT 'available',
+  deleted_at        TIMESTAMP NULL DEFAULT NULL,       -- terisi = karya dihapus kreator (soft delete, riwayat blockchain tetap utuh)
   created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (creator_id) REFERENCES users(id),
   FOREIGN KEY (owner_id)   REFERENCES users(id)
